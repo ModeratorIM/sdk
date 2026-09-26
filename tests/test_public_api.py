@@ -51,6 +51,7 @@ EXPECTED_PUBLIC_API = {
     "Manifest",
     "UnitType",
     "NavEntry",
+    "AuthMethod",
     # validation
     "Validator",
     "Required",

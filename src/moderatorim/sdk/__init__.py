@@ -42,6 +42,7 @@ from moderatorim.sdk.models import (
     text,
 )
 from moderatorim.sdk.registry import (
+    AuthMethod,
     Manifest,
     NavEntry,
     UnitType,
@@ -109,6 +110,7 @@ __all__ = [
     "Manifest",
     "UnitType",
     "NavEntry",
+    "AuthMethod",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",
     "Required",

@@ -53,6 +53,37 @@ class NavEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class AuthMethod:
+    """A sign-in method an app contributes to the public sign-in page (auth-methods spec).
+
+    The sign-in page renders a button per method (sorted by ``order``; core's ``core.password`` is
+    order 0 = first/default). Clicking a button reveals that method's ``form`` (rendered inline,
+    hidden until clicked) OR navigates to its ``redirect_url`` (an OAuth-start redirect). Exactly
+    one of ``form`` / ``redirect_url`` is set.
+
+    ``form`` is a RENDERABLE (a zero-arg callable returning markup), not a URL — core builds it into
+    the page at render time. A ``form`` method also registers its own POST handler via the unit's
+    ``routes`` hook; it authenticates a principal then asks the core session service to establish
+    the session (it never mints one itself).
+    """
+
+    id: str  # stable, app-namespaced id ("core.password", "sso.okta")
+    label: str  # button text ("Email / Password", "Sign in with Okta")
+    icon: str = ""  # leading icon (Material Symbol name)
+    order: int = 100  # sort among methods (core.password = 0)
+    form: Callable[[], Any] | None = None  # renders the method's inline form
+    redirect_url: str = ""  # OR an OAuth-start redirect (no inline form)
+
+    def __post_init__(self) -> None:
+        has_form = self.form is not None
+        has_redirect = bool(self.redirect_url)
+        if has_form == has_redirect:
+            raise ValueError(
+                f"AuthMethod {self.id!r} must set exactly one of `form` or `redirect_url`"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class Manifest:
     """A unit's self-declaration.
 
@@ -72,6 +103,9 @@ class Manifest:
     extends: tuple[Extends, ...] = ()
     store_metadata: dict[str, Any] = field(default_factory=dict)
     nav: tuple[NavEntry, ...] = ()
+    # Sign-in methods this unit contributes to the public sign-in page (auth-methods spec). Core's
+    # own core.password method is added by core, not declared here. Collected across units at boot.
+    auth_methods: tuple[AuthMethod, ...] = ()
     # Stylesheet filenames the app ships in its static dir, injected into the <head> by core when
     # one of the app's pages is served (served from /static/apps/{name}/<file>). App-owned theming:
     # the app declares + ships the CSS; core serves it and links it. e.g. ("admin.css",).
