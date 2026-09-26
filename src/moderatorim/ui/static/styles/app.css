@@ -467,6 +467,69 @@ main.responsive {
   font-weight: normal;
 }
 
+/* --- Auth-method chooser (sign-in): card-less 300px button column above the form card --- */
+.mim-auth-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+/* The button column: no card, centered, each button 300px. */
+.mim-auth-methods {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 300px;
+}
+.mim-auth-method-choice {
+  width: 300px;
+  display: block;
+}
+/* Fully remove the native radio — the label IS the button. */
+.mim-auth-method-radio {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.mim-auth-method-button {
+  width: 300px;
+  justify-content: center;
+}
+/* The form card below holds every method's panel; only the checked method's panel shows. */
+.mim-auth-form-card {
+  width: 100%;
+  max-width: 480px;
+}
+.mim-auth-method-panel {
+  display: none;
+}
+/* CSS radio-tab: a checked method radio reveals its panel in the card below (no JS). The panels
+   sit in document order after the radios, so a general-sibling selector on the shared container
+   works — see the per-index rules the renderer pairs by data-method / :has. */
+.mim-auth-methods:has(#mim-auth-m0:checked) ~ .mim-auth-form-card [data-method="mim-auth-m0"],
+.mim-auth-methods:has(#mim-auth-m1:checked) ~ .mim-auth-form-card [data-method="mim-auth-m1"],
+.mim-auth-methods:has(#mim-auth-m2:checked) ~ .mim-auth-form-card [data-method="mim-auth-m2"],
+.mim-auth-methods:has(#mim-auth-m3:checked) ~ .mim-auth-form-card [data-method="mim-auth-m3"] {
+  display: block;
+}
+/* Selected method button: filled primary; unselected: outline. */
+.mim-auth-method-choice:has(.mim-auth-method-radio:checked) .mim-auth-method-button {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.mim-auth-method-choice:has(.mim-auth-method-radio:not(:checked)) .mim-auth-method-button {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--outline-variant);
+}
+
 /* Connection-test badge: white text on the green/red chip. */
 .mim-test-badge,
 .mim-test-badge i,
