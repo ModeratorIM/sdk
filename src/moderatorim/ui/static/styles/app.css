@@ -481,13 +481,20 @@ main.responsive {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  width: 300px;
 }
 .mim-auth-method-choice {
   width: 300px;
+  display: block;
 }
-/* Hide the radio; its label IS the Beer CSS button. */
+/* Fully remove the native radio — the label IS the button. */
 .mim-auth-method-radio {
+  appearance: none;
+  -webkit-appearance: none;
   position: absolute;
+  width: 0;
+  height: 0;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
 }
