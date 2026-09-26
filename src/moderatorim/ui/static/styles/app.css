@@ -467,25 +467,22 @@ main.responsive {
   font-weight: normal;
 }
 
-/* --- Auth-method chooser (sign-in): card-less 300px button column above the form card --- */
+/* --- Auth-method chooser (sign-in): method buttons + form INSIDE one card --- */
 .mim-auth-signin {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
+  gap: 1rem;
 }
-/* The button column: no card, centered, each button 300px. */
+/* The method-button list at the top of the card. */
 .mim-auth-methods {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  width: 300px;
 }
 .mim-auth-method-choice {
-  width: 300px;
   display: block;
+  width: 100%;
 }
 /* Fully remove the native radio — the label IS the button. */
 .mim-auth-method-radio {
@@ -499,29 +496,18 @@ main.responsive {
   pointer-events: none;
 }
 .mim-auth-method-button {
-  width: 300px;
+  width: 100%;
   justify-content: center;
 }
-/* The form card below holds every method's panel; only the checked method's panel shows. The card
-   is HIDDEN until a method is selected (no radio checked → button column only). */
-.mim-auth-form-card {
-  width: 100%;
-  max-width: 480px;
-  display: none;
-}
-.mim-auth-methods:has(.mim-auth-method-radio:checked) ~ .mim-auth-form-card {
-  display: block;
-}
+/* Each method's form panel (sibling of the button list, inside the card). Hidden until its radio
+   is checked — no JS. No method checked on load → no form shows, just the button list. */
 .mim-auth-method-panel {
   display: none;
 }
-/* CSS radio-tab: a checked method radio reveals its panel in the card below (no JS). The panels
-   sit in document order after the radios, so a general-sibling selector on the shared container
-   works — see the per-index rules the renderer pairs by data-method / :has. */
-.mim-auth-methods:has(#mim-auth-m0:checked) ~ .mim-auth-form-card [data-method="mim-auth-m0"],
-.mim-auth-methods:has(#mim-auth-m1:checked) ~ .mim-auth-form-card [data-method="mim-auth-m1"],
-.mim-auth-methods:has(#mim-auth-m2:checked) ~ .mim-auth-form-card [data-method="mim-auth-m2"],
-.mim-auth-methods:has(#mim-auth-m3:checked) ~ .mim-auth-form-card [data-method="mim-auth-m3"] {
+.mim-auth-methods:has(#mim-auth-m0:checked) ~ [data-method="mim-auth-m0"],
+.mim-auth-methods:has(#mim-auth-m1:checked) ~ [data-method="mim-auth-m1"],
+.mim-auth-methods:has(#mim-auth-m2:checked) ~ [data-method="mim-auth-m2"],
+.mim-auth-methods:has(#mim-auth-m3:checked) ~ [data-method="mim-auth-m3"] {
   display: block;
 }
 /* Selected method button: filled primary; unselected: outline. */
