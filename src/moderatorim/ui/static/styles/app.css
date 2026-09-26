@@ -502,10 +502,15 @@ main.responsive {
   width: 300px;
   justify-content: center;
 }
-/* The form card below holds every method's panel; only the checked method's panel shows. */
+/* The form card below holds every method's panel; only the checked method's panel shows. The card
+   is HIDDEN until a method is selected (no radio checked → button column only). */
 .mim-auth-form-card {
   width: 100%;
   max-width: 480px;
+  display: none;
+}
+.mim-auth-methods:has(.mim-auth-method-radio:checked) ~ .mim-auth-form-card {
+  display: block;
 }
 .mim-auth-method-panel {
   display: none;
