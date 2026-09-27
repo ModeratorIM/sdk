@@ -70,8 +70,10 @@ def _render_options(parser: argparse.ArgumentParser) -> list[str]:
 
 def _render_command(name: str, parser: argparse.ArgumentParser, help_text: str) -> str:
     """Render one command page: title, description, usage block, options, and subcommand list."""
+    # Sidebar/page title is the command name WITHOUT the `moderatorim ` prefix
+    # (e.g. `create`, `create app`); the top-level page keeps `moderatorim`.
     title = name.replace("moderatorim ", "").strip() or "moderatorim"
-    lines = [_DO_NOT_EDIT, "", f"# `{name}`", ""]
+    lines = [_DO_NOT_EDIT, "", f"# `{title}`", ""]
     description = (parser.description or help_text or "").strip()
     if description:
         lines += [description, ""]
@@ -86,7 +88,7 @@ def _render_command(name: str, parser: argparse.ArgumentParser, help_text: str) 
     if child_names:
         lines += ["", "## Subcommands", ""]
         for child in child_names:
-            lines.append(f"- [`{name} {child}`](./{_slug(f'{title} {child}')}.md)")
+            lines.append(f"- [`{title} {child}`](./{_slug(f'{title} {child}')}.md)")
     lines.append("")
     return "\n".join(lines)
 

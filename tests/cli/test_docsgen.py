@@ -18,7 +18,9 @@ def test_renders_top_level_and_known_verbs() -> None:
 
 def test_create_app_page_lists_its_flags() -> None:
     page = docsgen.render_pages()["create-app"]
-    assert "# `moderatorim create app`" in page
+    # Titled by the command name without the `moderatorim ` prefix.
+    assert "# `create app`" in page
+    assert "# `moderatorim create app`" not in page
     # The positional and the real options must appear.
     assert "`name`" in page
     assert "--display-name" in page
