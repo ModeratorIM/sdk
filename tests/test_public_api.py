@@ -54,6 +54,11 @@ EXPECTED_PUBLIC_API = {
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    # views
+    "Field",
+    "ListView",
+    "PageView",
+    "ViewRoute",
     # validation
     "Validator",
     "Required",

@@ -66,6 +66,12 @@ from moderatorim.sdk.validation import (
     validate_field,
     validate_form,
 )
+from moderatorim.sdk.views import (
+    Field,
+    ListView,
+    PageView,
+    ViewRoute,
+)
 from moderatorim.sdk.web import (
     App,
     Ctx,
@@ -115,6 +121,11 @@ __all__ = [
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    # views (declarative model-driven view descriptors)
+    "Field",
+    "ListView",
+    "PageView",
+    "ViewRoute",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",
     "Required",
