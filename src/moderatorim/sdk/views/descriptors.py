@@ -77,6 +77,98 @@ class ListView:
         return tuple(sorted(self.fields, key=lambda f: f.order))
 
 
+# --- Form view (Stage 2) -----------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class FormFields:
+    """A form child view: renders the record's OWN fields in a ``columns``-wide grid.
+
+    Widget per field comes from the model column's ``FieldType`` (core owns the mapping). Fields
+    auto-flow across ``columns`` by their ``order``; ``Field(span=k)`` widens one. ``columns``
+    (default 1) collapses to 1 on mobile — it lives HERE, not on the tab or the FormView.
+    """
+
+    fields: tuple[Field, ...] = ()
+    columns: int = 1
+    order: int = 100
+
+    def __post_init__(self) -> None:
+        if self.columns < 1:
+            raise ValueError("FormFields.columns must be >= 1")
+
+
+@dataclass(frozen=True, slots=True)
+class FormOverview:
+    """A form child view: the record header (display-name + status). Empty on the create form."""
+
+    order: int = 100
+
+
+@dataclass(frozen=True, slots=True)
+class FormTab:
+    """One tab of a :class:`FormView`. Holds an ordered list of child views (``views``).
+
+    The lowest-``order`` tab (conventionally ``Detail``) is the default shown on load. ``roles``
+    gates the tab's own visibility at render (layer 3, via ``ctx.has_role``) — a viewer lacking the
+    role simply doesn't see the tab.
+    """
+
+    label: str
+    views: tuple[object, ...] = ()  # FormFields / FormOverview (later: embedded ListView / custom)
+    order: int = 100
+    roles: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("FormTab.label is required")
+
+    @property
+    def ordered_views(self) -> tuple[object, ...]:
+        return tuple(sorted(self.views, key=lambda v: getattr(v, "order", 100)))
+
+
+@dataclass(frozen=True, slots=True)
+class FormAction:
+    """A declared button on a form, invoking ``handler`` (a ``@app.action``-style callable) — gated
+    by ``roles`` at render (layer 3). E.g. the admin super-user toggle."""
+
+    label: str
+    handler: object  # a callable core binds to {path}/{id}/action/{name}
+    roles: tuple[str, ...] = ()
+    order: int = 100
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("FormAction.label is required")
+        if self.handler is None:
+            raise ValueError("FormAction.handler is required")
+
+
+@dataclass(frozen=True, slots=True)
+class FormView:
+    """A single root form view composed of :class:`FormTab`s (ordered) + declared ``actions``.
+
+    New and Edit share one FormView — edit pre-fills from the resolved record; create renders empty
+    (``ctx.is_new``). The first tab (lowest order) is the default.
+    """
+
+    tabs: tuple[FormTab, ...] = ()
+    actions: tuple[FormAction, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.tabs:
+            raise ValueError("FormView requires at least one FormTab")
+
+    @property
+    def ordered_tabs(self) -> tuple[FormTab, ...]:
+        return tuple(sorted(self.tabs, key=lambda t: t.order))
+
+    @property
+    def ordered_actions(self) -> tuple[FormAction, ...]:
+        return tuple(sorted(self.actions, key=lambda a: a.order))
+
+
 @dataclass(frozen=True, slots=True)
 class ViewModel:
     """A READ-ONLY reference to a table a view reads — NOT a model declaration.
