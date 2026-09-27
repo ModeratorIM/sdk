@@ -461,12 +461,6 @@ main.responsive {
 .mim-auth-card .mim-heading {
   text-align: center;
 }
-/* Default field border color for setup + auth forms. Mirror Beer CSS's own selector
-   (.field.border>:is(input,textarea,select)) at equal specificity so we override only the RESTING
-   border — Beer CSS's :hover / :focus rules are more specific and still win. */
-.mim-setup-form .field.border > :is(input, textarea, select) {
-  border-color: var(--outline-variant);
-}
 
 /* Text buttons (variant="text" → .button.transparent): primary-colored label, normal weight. */
 .mim-auth-form .button.transparent,
