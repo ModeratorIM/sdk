@@ -16,6 +16,16 @@ from moderatorim.ui.avatar import Avatar
 from moderatorim.ui.button import Button
 from moderatorim.ui.card import Card
 from moderatorim.ui.component import Component
+from moderatorim.ui.datatable import (
+    Column,
+    DataRow,
+    DataTable,
+    FilterField,
+    FilterState,
+    PageState,
+    SearchState,
+    SortState,
+)
 from moderatorim.ui.field import Field
 from moderatorim.ui.header import Header
 from moderatorim.ui.html import Raw, attrs, esc, tag
@@ -44,15 +54,23 @@ __all__ = [
     "Avatar",
     "Button",
     "Card",
+    "Column",
+    "DataRow",
+    "DataTable",
     "Field",
+    "FilterField",
+    "FilterState",
     "Grid",
     "Header",
     "Icon",
     "Input",
     "Nav",
+    "PageState",
     "Pills",
     "Row",
+    "SearchState",
     "Select",
+    "SortState",
     "Stepper",
     "Switch",
     "Textarea",
