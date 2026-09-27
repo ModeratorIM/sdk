@@ -32,15 +32,17 @@ def test_sdk_modules_are_discovered_module_first() -> None:
     assert not any(m.rsplit(".", 1)[-1].startswith("_") for m in mods)
 
 
-def test_ui_facet_is_separate() -> None:
-    assert sdk_docsgen.ui_modules() == ["moderatorim.ui"]
+def test_ui_symbols_are_per_type() -> None:
+    syms = sdk_docsgen.ui_symbols()
+    # Components are documented individually.
+    for expected in ("Alert", "Avatar", "Button", "Card"):
+        assert expected in syms
 
 
 def test_short_name_and_slug() -> None:
     assert sdk_docsgen._short_name("moderatorim.sdk.bus") == "bus"
     assert sdk_docsgen._short_name("moderatorim.ui") == "ui"
     assert sdk_docsgen._slug("moderatorim.sdk.datastore") == "datastore"
-    assert sdk_docsgen._slug("moderatorim.ui") == "ui"
 
 
 @needs_griffe2md
@@ -74,10 +76,15 @@ def test_generate_sdk_facet_writes_short_named_pages_no_index(tmp_path) -> None:
 
 
 @needs_griffe2md
-def test_generate_ui_facet_writes_ui_page(tmp_path) -> None:
+def test_generate_ui_facet_writes_one_page_per_symbol(tmp_path) -> None:
     written = sdk_docsgen.generate(tmp_path / "ui-ref", facet="ui")
     names = {p.name for p in written}
-    assert names == {"ui.md"}
+    # One page per public UI component/type.
+    assert "Alert.md" in names
+    assert "Avatar.md" in names
+    assert "Button.md" in names
+    # Not one monolithic ui.md page.
+    assert "ui.md" not in names
 
 
 @needs_griffe2md

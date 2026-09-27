@@ -35,7 +35,7 @@ import pkgutil
 import shutil
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -70,9 +70,14 @@ def sdk_modules() -> list[str]:
     return [f"moderatorim.sdk.{name}" for name in subs]
 
 
-def ui_modules() -> list[str]:
-    """The public UI facet — documented as one ``moderatorim.ui`` page."""
-    return ["moderatorim.ui"]
+def ui_symbols() -> list[str]:
+    """The public UI symbols to document, one page each (Alert, Avatar, Button, …).
+
+    Sourced from ``moderatorim.ui.__all__`` so components and helpers each get their own page,
+    matching how a UI-kit reference is browsed (per type), not one monolithic module page.
+    """
+    ui = importlib.import_module("moderatorim.ui")
+    return sorted(getattr(ui, "__all__", []))
 
 
 def _short_name(module: str) -> str:
@@ -99,31 +104,65 @@ def render_page(module: str) -> str:
     return f"{_DO_NOT_EDIT}\n\n# `{_short_name(module)}`\n\n{body.strip()}\n"
 
 
-def generate(output_dir: Path | str = DEFAULT_OUTPUT, *, facet: str = "sdk") -> list[Path]:
-    """Fully (re)generate a facet's module-first reference tree under ``output_dir``.
+def _find_member(obj: object, name: str) -> Any:
+    """Depth-first search for a member named ``name`` anywhere under ``obj`` (griffe tree).
 
-    ``facet`` selects which surface to render: ``"sdk"`` (the ``moderatorim.sdk.*`` submodules) or
-    ``"ui"`` (the ``moderatorim.ui`` facet). The directory is removed and rebuilt so a removed
-    module leaves no orphan page. No index page is written — the sidebar provides navigation.
-    Returns the sorted list of written paths.
+    Returns the opaque griffe node (typed ``Any`` — griffe ships no stubs) or ``None``.
     """
-    if facet == "sdk":
-        modules = sdk_modules()
-    elif facet == "ui":
-        modules = ui_modules()
-    else:  # pragma: no cover - guarded by the CLI
-        raise SystemExit(f"unknown facet {facet!r}; expected 'sdk' or 'ui'")
+    for member_name, member in getattr(obj, "members", {}).items():
+        if member_name == name:
+            return member
+        try:
+            is_module = member.kind.value == "module"
+        except Exception:  # noqa: BLE001 - unresolved alias, skip
+            continue
+        if is_module:
+            found = _find_member(member, name)
+            if found is not None:
+                return found
+    return None
 
+
+def render_symbol(package: str, name: str) -> str:
+    """Render a single public symbol (e.g. ``moderatorim.ui`` / ``Alert``) to its own page."""
+    griffe2md = _require_griffe2md()
+    import griffe  # noqa: PLC0415
+
+    pkg = griffe.load(package, submodules=True, allow_inspection=True)
+    obj = _find_member(pkg, name)
+    if obj is None:  # pragma: no cover - would indicate a stale __all__
+        raise SystemExit(f"symbol {name!r} not found in {package}")
+    body = griffe2md.render_object_docs(obj)
+    return f"{_DO_NOT_EDIT}\n\n# `{name}`\n\n{body.strip()}\n"
+
+
+def generate(output_dir: Path | str = DEFAULT_OUTPUT, *, facet: str = "sdk") -> list[Path]:
+    """Fully (re)generate a facet's reference tree under ``output_dir``.
+
+    ``facet`` selects the surface: ``"sdk"`` renders one page per ``moderatorim.sdk.*`` submodule
+    (module-first); ``"ui"`` renders one page per public ``moderatorim.ui`` symbol (Alert, Avatar,
+    …). The directory is removed and rebuilt so a removed module/symbol leaves no orphan page. No
+    index page is written — the sidebar provides navigation. Returns the sorted written paths.
+    """
     out = Path(output_dir)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
 
     written: list[Path] = []
-    for module in modules:
-        path = out / f"{_slug(module)}.md"
-        path.write_text(render_page(module), encoding="utf-8")
-        written.append(path)
+    if facet == "sdk":
+        for module in sdk_modules():
+            path = out / f"{_slug(module)}.md"
+            path.write_text(render_page(module), encoding="utf-8")
+            written.append(path)
+    elif facet == "ui":
+        for name in ui_symbols():
+            path = out / f"{name}.md"
+            path.write_text(render_symbol("moderatorim.ui", name), encoding="utf-8")
+            written.append(path)
+    else:  # pragma: no cover - guarded by the CLI
+        raise SystemExit(f"unknown facet {facet!r}; expected 'sdk' or 'ui'")
+
     return sorted(written)
 
 
