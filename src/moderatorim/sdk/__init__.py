@@ -26,6 +26,7 @@ from moderatorim.sdk.datastore import (
     FilterOp,
     Record,
     RecordList,
+    TableAccessDenied,
 )
 from moderatorim.sdk.models import (
     ID_FIELD,
@@ -97,6 +98,7 @@ __all__ = [
     "FilterOp",
     "Record",
     "RecordList",
+    "TableAccessDenied",
     # cachestore port
     "CacheStore",
     # bus

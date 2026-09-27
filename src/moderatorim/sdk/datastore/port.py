@@ -97,3 +97,21 @@ class DataStore(Protocol):
     async def count(self, table: str, filters: FilterList | None = None) -> int:
         """Count records matching ALL ``filters`` (ANDed)."""
         ...
+
+
+class TableAccessDenied(Exception):
+    """Raised when a caller is denied a table-level operation by the table-ACL gate
+    (:attr:`TableModel.role`, enforced in the core-owned guarded store — see moderatorim-table-acl).
+
+    Distinct from a route-layer permission denial: this is the DATA floor (L1), refused because the
+    caller's principal holds none of the table's declared roles. The routing framework maps an
+    uncaught instance to a 403. ``table`` is the physical table name, ``op`` the attempted operation
+    (e.g. ``"list"``), ``principal`` a short principal descriptor for the log/message.
+    """
+
+    def __init__(self, table: str, op: str, principal: str = "") -> None:
+        self.table = table
+        self.op = op
+        self.principal = principal
+        who = f" for {principal}" if principal else ""
+        super().__init__(f"table-ACL: {op!r} on {table!r} denied{who}")

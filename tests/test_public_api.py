@@ -38,6 +38,7 @@ EXPECTED_PUBLIC_API = {
     "FilterOp",
     "Record",
     "RecordList",
+    "TableAccessDenied",
     # cachestore port
     "CacheStore",
     # bus

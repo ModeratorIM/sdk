@@ -7,6 +7,15 @@ from moderatorim.sdk.datastore.port import (
     FilterOp,
     Record,
     RecordList,
+    TableAccessDenied,
 )
 
-__all__ = ["DataStore", "Filter", "FilterList", "FilterOp", "Record", "RecordList"]
+__all__ = [
+    "DataStore",
+    "Filter",
+    "FilterList",
+    "FilterOp",
+    "Record",
+    "RecordList",
+    "TableAccessDenied",
+]
