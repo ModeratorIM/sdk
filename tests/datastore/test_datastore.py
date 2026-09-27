@@ -4,7 +4,19 @@ from __future__ import annotations
 
 import pytest
 
-from moderatorim.sdk import DataStore, Filter, FilterOp, TableAccessDenied
+from moderatorim.sdk import DataStore, Filter, FilterOp, Search, TableAccessDenied
+
+
+def test_search_is_empty_semantics() -> None:
+    assert Search("", ("name",)).is_empty() is True
+    assert Search("acme", ()).is_empty() is True
+    assert Search("acme", ("name", "email")).is_empty() is False
+
+
+def test_search_carries_term_and_fields() -> None:
+    s = Search("acme", ("name", "email"))
+    assert s.term == "acme"
+    assert s.fields == ("name", "email")
 
 
 def test_table_access_denied_carries_context() -> None:

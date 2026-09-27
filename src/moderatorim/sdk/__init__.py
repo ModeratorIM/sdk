@@ -26,6 +26,7 @@ from moderatorim.sdk.datastore import (
     FilterOp,
     Record,
     RecordList,
+    Search,
     TableAccessDenied,
 )
 from moderatorim.sdk.models import (
@@ -98,6 +99,7 @@ __all__ = [
     "FilterOp",
     "Record",
     "RecordList",
+    "Search",
     "TableAccessDenied",
     # cachestore port
     "CacheStore",
