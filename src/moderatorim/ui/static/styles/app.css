@@ -857,3 +857,109 @@ main.responsive {
   .mim-list-table td.mim-list-actions { justify-content: flex-end; border-bottom: 0; }
   .mim-list-table td.mim-list-actions::before { content: ""; } /* no label for the actions row */
 }
+
+
+/* --- Model-driven Form view (ui-view-design, Stage 2) ---------------------- */
+/* A focused editing surface: a capped, centered card holding heading → (tabs) → fields → sticky
+   footer. Colours from Beer/theme tokens; scoped under .mim-form-view — no global bleed. */
+.mim-form-view {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--surface);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-view-radius);
+  overflow: hidden;
+}
+.mim-form { display: flex; flex-direction: column; }
+/* Error banner at the top of the card (soft error tint). */
+.mim-form-errors {
+  margin: 0;
+  list-style: none;
+  padding: var(--mim-view-pad);
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  color: var(--error);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.mim-form-errors li { margin: 0.15rem 0; }
+/* Record header (edit). */
+.mim-form-overview {
+  padding: var(--mim-view-pad) var(--mim-view-pad) 0;
+}
+.mim-form-overview h5 { margin: 0; }
+/* Tab bar (Material underline tabs) — only when >1 tab. */
+.mim-form-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 var(--mim-view-pad);
+  border-bottom: 1px solid var(--outline-variant);
+  overflow-x: auto; /* scroll if tabs exceed width (narrow screens) */
+}
+.mim-form-tab {
+  padding: 0.75rem 0.5rem;
+  text-decoration: none;
+  color: var(--on-surface-variant);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mim-form-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+/* Panels: only the active one shows (JS toggles .active). */
+.mim-form-panel { display: none; padding: var(--mim-view-pad); }
+.mim-form-panel.active { display: block; }
+/* When there are no tabs, the single panel still needs its padding. */
+.mim-form > .mim-form-panel:only-of-type { display: block; }
+/* Field grid — the declared column count on desktop; single column on mobile. */
+.mim-form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+.mim-form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.mim-form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.mim-form-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.mim-form-field.span-2 { grid-column: span 2; }
+.mim-form-field.span-3 { grid-column: span 3; }
+.mim-form-field > label { font-weight: 600; color: var(--on-surface-variant); font-size: 0.9rem; }
+.mim-form-field input,
+.mim-form-field textarea,
+.mim-form-field select {
+  min-height: var(--mim-touch);
+  padding: 0 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-field-radius);
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+}
+.mim-form-field textarea { padding: 0.6rem 0.75rem; min-height: 6rem; }
+.mim-form-field input:focus-visible,
+.mim-form-field textarea:focus-visible,
+.mim-form-field select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+.mim-form-help { color: var(--on-surface-variant); font-size: 0.8rem; }
+/* Sticky footer action row: primary submit right, secondary actions left. */
+.mim-form-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface);
+  position: sticky;
+  bottom: 0;
+}
+.mim-form-footer button[type="submit"] { margin-left: auto; order: 100; } /* primary to the right */
+
+/* Responsive: edge-to-edge card + single-column fields on phones. */
+@media (max-width: 640px) {
+  .mim-form-view { max-width: none; margin: 0; border-left: 0; border-right: 0; border-radius: 0; }
+  .mim-form-grid.cols-2, .mim-form-grid.cols-3 { grid-template-columns: 1fr; }
+  .mim-form-field.span-2, .mim-form-field.span-3 { grid-column: span 1; }
+}
