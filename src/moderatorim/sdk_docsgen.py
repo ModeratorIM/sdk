@@ -1,10 +1,20 @@
 """Generate Markdown reference for the ModeratorIM SDK's public API using ``griffe2md``.
 
 ``griffe`` parses the Python source statically (no execution) and ``griffe2md`` renders Markdown
-from the signatures + docstrings. This walker drives it over the public packages —
-``moderatorim.sdk`` (the contract API) and ``moderatorim.ui`` (the UI building blocks) — and writes
-one page per package into the reference tree. The ``moderatorim`` CLI is documented separately by
-:mod:`moderatorim.cli.docsgen` (its source of truth is the argparse parser, not docstrings).
+from the signatures + docstrings. The reference is **module-first** (the convention used by the
+Python standard library, Django, Rust and Flutter docs): one page per public module, each page
+sub-sectioned by kind (classes, functions, attributes) by griffe2md itself — rather than one giant
+page or a flat alphabetical symbol list. A developer navigates to the module they are working with
+(``bus``, ``datastore``, ``views``, …) and sees everything it exposes.
+
+Documented surfaces:
+
+* ``moderatorim.sdk`` — the contract API, one page per public submodule (bus, cachestore,
+  datastore, models, registry, validation, views, web — discovered dynamically);
+* ``moderatorim.ui`` — the UI building blocks, one page.
+
+The ``moderatorim`` CLI is documented separately by :mod:`moderatorim.cli.docsgen` (its source of
+truth is the argparse parser, not docstrings).
 
 Generated Markdown is a *build artifact*: each page carries a "generated — do not edit" header,
 the index records the documented SDK version, and :func:`generate` fully rebuilds the tree each run
@@ -20,7 +30,9 @@ Usage (from the SDK repo, with ``griffe2md`` installed)::
 
 from __future__ import annotations
 
+import importlib
 import importlib.metadata
+import pkgutil
 import shutil
 import sys
 from pathlib import Path
@@ -28,10 +40,6 @@ from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from types import ModuleType
-
-# The public packages to document, in reader order. The CLI is intentionally excluded — it is
-# generated from its argparse parser by moderatorim.cli.docsgen.
-PACKAGES: tuple[str, ...] = ("moderatorim.sdk", "moderatorim.ui")
 
 DEFAULT_OUTPUT = Path("generated-docs/sdk/reference")
 
@@ -59,19 +67,43 @@ def _sdk_version() -> str:
         return "unknown"
 
 
-def _slug(package: str) -> str:
-    """A filesystem-safe slug for a package, e.g. 'moderatorim.ui' -> 'moderatorim-ui'."""
-    return package.replace(".", "-")
+def public_modules() -> list[str]:
+    """The public modules to document, module-first, in reader order.
+
+    The ``moderatorim.sdk`` public submodules are discovered dynamically (any non-underscore
+    package under it), so a new subsystem is documented automatically. ``moderatorim.ui`` is a
+    top-level peer facet documented as one page.
+    """
+    sdk = importlib.import_module("moderatorim.sdk")
+    subs = sorted(m.name for m in pkgutil.iter_modules(sdk.__path__) if not m.name.startswith("_"))
+    mods = [f"moderatorim.sdk.{name}" for name in subs]
+    mods.append("moderatorim.ui")
+    return mods
 
 
-def render_page(package: str) -> str:
-    """Render one public package to a Markdown page (header + griffe2md body)."""
+def _slug(module: str) -> str:
+    """A filesystem-safe slug for a module, e.g. 'moderatorim.sdk.bus' -> 'bus';
+    'moderatorim.ui' -> 'moderatorim-ui'."""
+    if module.startswith("moderatorim.sdk."):
+        return module[len("moderatorim.sdk.") :].replace(".", "-")
+    return module.replace(".", "-")
+
+
+def render_page(module: str) -> str:
+    """Render one public module to a Markdown page (header + griffe2md body).
+
+    Uses griffe2md's object renderer so the page is sub-sectioned by kind (classes, functions,
+    attributes) within the module.
+    """
     griffe2md = _require_griffe2md()
-    body = griffe2md.render_package_docs(package, format_md=False)
-    return f"{_DO_NOT_EDIT}\n\n# `{package}`\n\n{body.strip()}\n"
+    import griffe  # noqa: PLC0415
+
+    obj = griffe.load(module, submodules=True, allow_inspection=True)
+    body = griffe2md.render_object_docs(obj)
+    return f"{_DO_NOT_EDIT}\n\n# `{module}`\n\n{body.strip()}\n"
 
 
-def render_index() -> str:
+def render_index(modules: list[str]) -> str:
     """Render the reference index page, recording the documented SDK version."""
     lines = [
         _DO_NOT_EDIT,
@@ -79,34 +111,36 @@ def render_index() -> str:
         "# SDK API reference",
         "",
         f"Generated from **moderatorim-sdk {_sdk_version()}**. "
-        "These pages are derived from the code — never hand-edited.",
+        "These pages are derived from the code — never hand-edited. "
+        "Reference is organized by module.",
         "",
     ]
-    for package in PACKAGES:
-        lines.append(f"- [`{package}`](./{_slug(package)}.md)")
+    for module in modules:
+        lines.append(f"- [`{module}`](./{_slug(module)}.md)")
     lines.append("")
     return "\n".join(lines)
 
 
 def generate(output_dir: Path | str = DEFAULT_OUTPUT) -> list[Path]:
-    """Fully (re)generate the SDK API reference Markdown tree under ``output_dir``.
+    """Fully (re)generate the module-first SDK API reference tree under ``output_dir``.
 
-    The directory is removed and rebuilt so a removed package leaves no orphan page. Returns the
-    sorted list of written paths (index first).
+    The directory is removed and rebuilt so a removed module leaves no orphan page. Returns the
+    sorted list of written paths.
     """
     out = Path(output_dir)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
 
+    modules = public_modules()
     written: list[Path] = []
     index_path = out / "index.md"
-    index_path.write_text(render_index(), encoding="utf-8")
+    index_path.write_text(render_index(modules), encoding="utf-8")
     written.append(index_path)
 
-    for package in PACKAGES:
-        path = out / f"{_slug(package)}.md"
-        path.write_text(render_page(package), encoding="utf-8")
+    for module in modules:
+        path = out / f"{_slug(module)}.md"
+        path.write_text(render_page(module), encoding="utf-8")
         written.append(path)
     return sorted(written)
 

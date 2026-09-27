@@ -82,7 +82,7 @@ explicit_package_bases = true
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["griffe2md"]
+module = ["griffe2md", "griffe"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
