@@ -17,6 +17,12 @@ from typing import Any
 from moderatorim.sdk.models import Extends, TableModel
 
 
+def _no_register(_core: Any) -> None:
+    """Default ``Manifest.register`` — a no-op, so apps that only DECLARE (models, subscriptions,
+    routes) need not supply a hollow register hook. Override only for custom boot logic."""
+    return None
+
+
 class UnitType(Enum):
     """The three kinds of installable unit, ordered by layer (lower value = lower layer)."""
 
@@ -94,13 +100,17 @@ class Manifest:
 
     name: str
     type: UnitType
-    register: Callable[[Any], None]
+    register: Callable[[Any], None] = _no_register
     version: str = "0.0.0"
     display_name: str = ""
     dependency: tuple[str, ...] = ()
     provides: tuple[str, ...] = ()
     models: tuple[TableModel, ...] = ()
     extends: tuple[Extends, ...] = ()
+    # Declarative event subscriptions (design §1): each Subscription(kind, factory) is wired at
+    # boot — core calls factory(core) and subscribes the returned handler to kind. Replaces the
+    # imperative register(core) + bus.subscribe(...) boilerplate (register is now optional).
+    subscriptions: tuple[Any, ...] = ()
     store_metadata: dict[str, Any] = field(default_factory=dict)
     nav: tuple[NavEntry, ...] = ()
     # Sign-in methods this unit contributes to the public sign-in page (auth-methods spec). Core's
