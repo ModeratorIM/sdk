@@ -126,7 +126,18 @@ def test_view_extension_and_app_extend_view() -> None:
     assert len(app.extensions) == 1 and app.extensions[0].target == "/shop/orders"
 
 
-def test_calendar_view_descriptor_and_facade() -> None:
+def test_field_custom_cell_escape_hatch() -> None:
+    from moderatorim.sdk import Field
+
+    plain = Field("name")
+    assert plain.is_custom is False and plain.custom is None
+
+    badge = Field("status_badge", custom=lambda rec: f"<b>{rec.get('status', '')}</b>")
+    assert badge.is_custom is True
+    assert badge.custom({"status": "active"}) == "<b>active</b>"
+    # a custom field still needs a non-empty name (its column key + header label)
+    with pytest.raises(ValueError, match="non-empty"):
+        Field("", custom=lambda rec: "x")
     from moderatorim.sdk import App, CalendarView, Kind
 
     cal = CalendarView(start_field="starts_at", title_field="subject", end_field="ends_at")
