@@ -1,10 +1,20 @@
 """Generate Markdown reference for the ModeratorIM SDK's public API using ``griffe2md``.
 
 ``griffe`` parses the Python source statically (no execution) and ``griffe2md`` renders Markdown
-from the signatures + docstrings. This walker drives it over the public packages —
-``moderatorim.sdk`` (the contract API) and ``moderatorim.ui`` (the UI building blocks) — and writes
-one page per package into the reference tree. The ``moderatorim`` CLI is documented separately by
-:mod:`moderatorim.cli.docsgen` (its source of truth is the argparse parser, not docstrings).
+from the signatures + docstrings. The reference is **module-first** (the convention used by the
+Python standard library, Django, Rust and Flutter docs): one page per public module, each page
+sub-sectioned by kind (classes, functions, attributes) by griffe2md itself — rather than one giant
+page or a flat alphabetical symbol list. A developer navigates to the module they are working with
+(``bus``, ``datastore``, ``views``, …) and sees everything it exposes.
+
+Documented surfaces:
+
+* ``moderatorim.sdk`` — the contract API, one page per public submodule (bus, cachestore,
+  datastore, models, registry, validation, views, web — discovered dynamically);
+* ``moderatorim.ui`` — the UI building blocks, one page.
+
+The ``moderatorim`` CLI is documented separately by :mod:`moderatorim.cli.docsgen` (its source of
+truth is the argparse parser, not docstrings).
 
 Generated Markdown is a *build artifact*: each page carries a "generated — do not edit" header,
 the index records the documented SDK version, and :func:`generate` fully rebuilds the tree each run
@@ -20,18 +30,15 @@ Usage (from the SDK repo, with ``griffe2md`` installed)::
 
 from __future__ import annotations
 
-import importlib.metadata
+import importlib
+import pkgutil
 import shutil
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from types import ModuleType
-
-# The public packages to document, in reader order. The CLI is intentionally excluded — it is
-# generated from its argparse parser by moderatorim.cli.docsgen.
-PACKAGES: tuple[str, ...] = ("moderatorim.sdk", "moderatorim.ui")
 
 DEFAULT_OUTPUT = Path("generated-docs/sdk/reference")
 
@@ -52,47 +59,90 @@ def _require_griffe2md() -> ModuleType:
     return cast("ModuleType", griffe2md)
 
 
-def _sdk_version() -> str:
-    try:
-        return importlib.metadata.version("moderatorim-sdk")
-    except importlib.metadata.PackageNotFoundError:  # pragma: no cover
-        return "unknown"
+def sdk_modules() -> list[str]:
+    """The public ``moderatorim.sdk`` submodules to document, discovered dynamically.
+
+    Any non-underscore package under ``moderatorim.sdk`` (bus, cachestore, datastore, models,
+    registry, validation, views, web, …), so a new subsystem is documented automatically.
+    """
+    sdk = importlib.import_module("moderatorim.sdk")
+    subs = sorted(m.name for m in pkgutil.iter_modules(sdk.__path__) if not m.name.startswith("_"))
+    return [f"moderatorim.sdk.{name}" for name in subs]
 
 
-def _slug(package: str) -> str:
-    """A filesystem-safe slug for a package, e.g. 'moderatorim.ui' -> 'moderatorim-ui'."""
-    return package.replace(".", "-")
+def ui_symbols() -> list[str]:
+    """The public UI symbols to document, one page each (Alert, Avatar, Button, …).
+
+    Sourced from ``moderatorim.ui.__all__`` so components and helpers each get their own page,
+    matching how a UI-kit reference is browsed (per type), not one monolithic module page.
+    """
+    ui = importlib.import_module("moderatorim.ui")
+    return sorted(getattr(ui, "__all__", []))
 
 
-def render_page(package: str) -> str:
-    """Render one public package to a Markdown page (header + griffe2md body)."""
+def _short_name(module: str) -> str:
+    """The reader-facing short name: the module's last path segment (e.g. 'bus', 'ui')."""
+    return module.rsplit(".", 1)[-1]
+
+
+def _slug(module: str) -> str:
+    """A filesystem-safe slug: the short module name (e.g. 'bus', 'ui')."""
+    return _short_name(module)
+
+
+def render_page(module: str) -> str:
+    """Render one public module to a Markdown page (header + griffe2md body).
+
+    The page is titled by its short name (``bus``, not ``moderatorim.sdk.bus``); griffe2md
+    sub-sections the body by kind (classes, functions, attributes) within the module.
+    """
     griffe2md = _require_griffe2md()
-    body = griffe2md.render_package_docs(package, format_md=False)
-    return f"{_DO_NOT_EDIT}\n\n# `{package}`\n\n{body.strip()}\n"
+    import griffe  # noqa: PLC0415
+
+    obj = griffe.load(module, submodules=True, allow_inspection=True)
+    body = griffe2md.render_object_docs(obj)
+    return f"{_DO_NOT_EDIT}\n\n# `{_short_name(module)}`\n\n{body.strip()}\n"
 
 
-def render_index() -> str:
-    """Render the reference index page, recording the documented SDK version."""
-    lines = [
-        _DO_NOT_EDIT,
-        "",
-        "# SDK API reference",
-        "",
-        f"Generated from **moderatorim-sdk {_sdk_version()}**. "
-        "These pages are derived from the code — never hand-edited.",
-        "",
-    ]
-    for package in PACKAGES:
-        lines.append(f"- [`{package}`](./{_slug(package)}.md)")
-    lines.append("")
-    return "\n".join(lines)
+def _find_member(obj: object, name: str) -> Any:
+    """Depth-first search for a member named ``name`` anywhere under ``obj`` (griffe tree).
+
+    Returns the opaque griffe node (typed ``Any`` — griffe ships no stubs) or ``None``.
+    """
+    for member_name, member in getattr(obj, "members", {}).items():
+        if member_name == name:
+            return member
+        try:
+            is_module = member.kind.value == "module"
+        except Exception:  # noqa: BLE001 - unresolved alias, skip
+            continue
+        if is_module:
+            found = _find_member(member, name)
+            if found is not None:
+                return found
+    return None
 
 
-def generate(output_dir: Path | str = DEFAULT_OUTPUT) -> list[Path]:
-    """Fully (re)generate the SDK API reference Markdown tree under ``output_dir``.
+def render_symbol(package: str, name: str) -> str:
+    """Render a single public symbol (e.g. ``moderatorim.ui`` / ``Alert``) to its own page."""
+    griffe2md = _require_griffe2md()
+    import griffe  # noqa: PLC0415
 
-    The directory is removed and rebuilt so a removed package leaves no orphan page. Returns the
-    sorted list of written paths (index first).
+    pkg = griffe.load(package, submodules=True, allow_inspection=True)
+    obj = _find_member(pkg, name)
+    if obj is None:  # pragma: no cover - would indicate a stale __all__
+        raise SystemExit(f"symbol {name!r} not found in {package}")
+    body = griffe2md.render_object_docs(obj)
+    return f"{_DO_NOT_EDIT}\n\n# `{name}`\n\n{body.strip()}\n"
+
+
+def generate(output_dir: Path | str = DEFAULT_OUTPUT, *, facet: str = "sdk") -> list[Path]:
+    """Fully (re)generate a facet's reference tree under ``output_dir``.
+
+    ``facet`` selects the surface: ``"sdk"`` renders one page per ``moderatorim.sdk.*`` submodule
+    (module-first); ``"ui"`` renders one page per public ``moderatorim.ui`` symbol (Alert, Avatar,
+    …). The directory is removed and rebuilt so a removed module/symbol leaves no orphan page. No
+    index page is written — the sidebar provides navigation. Returns the sorted written paths.
     """
     out = Path(output_dir)
     if out.exists():
@@ -100,21 +150,35 @@ def generate(output_dir: Path | str = DEFAULT_OUTPUT) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
 
     written: list[Path] = []
-    index_path = out / "index.md"
-    index_path.write_text(render_index(), encoding="utf-8")
-    written.append(index_path)
+    if facet == "sdk":
+        for module in sdk_modules():
+            path = out / f"{_slug(module)}.md"
+            path.write_text(render_page(module), encoding="utf-8")
+            written.append(path)
+    elif facet == "ui":
+        for name in ui_symbols():
+            path = out / f"{name}.md"
+            path.write_text(render_symbol("moderatorim.ui", name), encoding="utf-8")
+            written.append(path)
+    else:  # pragma: no cover - guarded by the CLI
+        raise SystemExit(f"unknown facet {facet!r}; expected 'sdk' or 'ui'")
 
-    for package in PACKAGES:
-        path = out / f"{_slug(package)}.md"
-        path.write_text(render_page(package), encoding="utf-8")
-        written.append(path)
     return sorted(written)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
-    output = Path(args[0]) if args else DEFAULT_OUTPUT
-    written = generate(output)
+    # Usage: python -m moderatorim.sdk_docsgen [OUTPUT_DIR] [--facet sdk|ui]
+    facet = "sdk"
+    positional: list[str] = []
+    it = iter(args)
+    for a in it:
+        if a == "--facet":
+            facet = next(it, "sdk")
+        else:
+            positional.append(a)
+    output = Path(positional[0]) if positional else DEFAULT_OUTPUT
+    written = generate(output, facet=facet)
     for path in written:
         print(f"  wrote {path}")
     return 0

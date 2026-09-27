@@ -41,8 +41,10 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf out
-          # SDK API reference (moderatorim.sdk + moderatorim.ui) beside the hand-written sdk/ overview.
-          python -m moderatorim.sdk_docsgen out/sdk/sdk/reference
+          # SDK API reference (moderatorim.sdk.* submodules) under the SDK facet.
+          python -m moderatorim.sdk_docsgen out/sdk/sdk/reference --facet sdk
+          # UI reference (moderatorim.ui) under the UI facet.
+          python -m moderatorim.sdk_docsgen out/sdk/ui/reference --facet ui
           # CLI reference (the moderatorim argparse parser) beside the hand-written cli overview.
           python -m moderatorim.cli.docsgen out/sdk/cli/reference
           echo "Generated files:"
@@ -66,9 +68,10 @@ jobs:
           set -euo pipefail
           DEST=docs-repo/src/content/docs
           # Fully replace the generated reference trees so a removed symbol/command leaves no orphan.
-          rm -rf "$DEST/sdk/sdk/reference" "$DEST/sdk/cli/reference"
-          mkdir -p "$DEST/sdk/sdk" "$DEST/sdk/cli"
+          rm -rf "$DEST/sdk/sdk/reference" "$DEST/sdk/ui/reference" "$DEST/sdk/cli/reference"
+          mkdir -p "$DEST/sdk/sdk" "$DEST/sdk/ui" "$DEST/sdk/cli"
           cp -R out/sdk/sdk/reference "$DEST/sdk/sdk/reference"
+          cp -R out/sdk/ui/reference "$DEST/sdk/ui/reference"
           cp -R out/sdk/cli/reference "$DEST/sdk/cli/reference"
 
       - name: Open a pull request into the docs repo
@@ -88,4 +91,5 @@ jobs:
             in the SDK repo and re-release. The drift-guard CI here verifies they match the release.
           add-paths: |
             src/content/docs/sdk/sdk/reference/**
+            src/content/docs/sdk/ui/reference/**
             src/content/docs/sdk/cli/reference/**
