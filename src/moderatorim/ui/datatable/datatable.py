@@ -123,6 +123,7 @@ class DataTable(Component):
         pagination: PageState | None = None,
         row_href: bool = False,
         row_actions: Sequence[tuple[str, Component | Raw | str]] = (),
+        actions: Sequence[Component | Raw | str] = (),
         toolbar_extra: Sequence[Component | Raw | str] = (),
         empty_label: str = "No records yet.",
     ) -> None:
@@ -139,6 +140,9 @@ class DataTable(Component):
         # row_actions: (id, rendered-cell) pairs would be per-row; instead the caller passes a
         # callback via a custom Column, or we render an actions column when actions_for is given.
         self.row_actions = tuple(row_actions)
+        # actions: list-level action buttons (New / bulk actions), rendered in a right-aligned bar
+        # ABOVE the toolbar — distinct from toolbar_extra (which sits inline with search/filters).
+        self.actions = tuple(actions)
         self.toolbar_extra = tuple(toolbar_extra)
         self.empty_label = empty_label
 
@@ -425,10 +429,17 @@ class DataTable(Component):
                 **{"class": "border stripes mim-list-table"},
             )
 
+        # ListAction bar: list-level actions (New / bulk), right-aligned ABOVE the toolbar. Rendered
+        # only when actions are supplied, so a list with none has no empty bar.
+        parts: list[Any] = []
+        if self.actions:
+            parts.append(tag("div", *self.actions, **{"class": "mim-list-actionbar"}))
+        parts.append(tag("div", *toolbar, **{"class": "mim-list-toolbar"}))
+        parts.append(table_or_empty)
+        parts.append(self._footer())
+
         return tag(
             "div",
-            tag("div", *toolbar, **{"class": "mim-list-toolbar"}),
-            table_or_empty,
-            self._footer(),
+            *parts,
             **{"class": "mim-list", "id": self.region_id},
         )

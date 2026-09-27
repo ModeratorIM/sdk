@@ -92,6 +92,22 @@ def test_multi_field_filter_builder() -> None:
     assert "mim-filter-template" in html and "mim-filter-add" in html
 
 
+def test_actions_bar_renders_above_toolbar() -> None:
+    from moderatorim.ui import tag
+
+    new_btn = tag("a", "New", **{"href": "/x/new", "class": "button"})
+    html = _table(actions=[new_btn])
+    assert "mim-list-actionbar" in html
+    assert ">New<" in html
+    # the action bar comes before the toolbar in the markup (rendered above it)
+    assert html.index("mim-list-actionbar") < html.index("mim-list-toolbar")
+
+
+def test_no_actions_no_bar() -> None:
+    html = _table()  # no actions supplied
+    assert "mim-list-actionbar" not in html  # empty → no bar rendered
+
+
 def test_pagination_footer() -> None:
     html = _table(pagination=PageState(page=2, pages=3, total=42))
     assert "42 total · page 2/3" in html
