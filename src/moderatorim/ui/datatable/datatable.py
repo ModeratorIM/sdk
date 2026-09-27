@@ -151,10 +151,14 @@ class DataTable(Component):
             return ""
         if col.kind == "bool":
             on = bool(value) and value not in ("0", "false", "False")
+            # A Material icon marks the boolean: a check when true, a muted close when false.
             return tag(
-                "span",
-                "Yes" if on else "No",
-                **{"class": "chip small mim-cell-pill" + ("" if on else " mim-cell-pill-off")},
+                "i",
+                "check" if on else "close",
+                **{
+                    "class": "mim-cell-bool" + ("" if on else " mim-cell-bool-off"),
+                    "title": "Yes" if on else "No",
+                },
             )
         return str(value)
 

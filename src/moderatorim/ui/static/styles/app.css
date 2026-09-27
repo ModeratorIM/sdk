@@ -832,6 +832,9 @@ main.responsive {
 }
 .mim-list-table td.mim-list-actions .button { opacity: 0.75; transition: opacity 0.1s; }
 .mim-list-table tr:hover td.mim-list-actions .button { opacity: 1; }
+/* Boolean cell: a Material icon — a primary check when true, a muted close when false. */
+.mim-cell-bool { font-size: 1.15rem; vertical-align: middle; color: var(--primary); }
+.mim-cell-bool.mim-cell-bool-off { color: var(--outline); opacity: 0.6; }
 /* Empty state: centered, muted, generous padding. */
 .mim-list-empty {
   padding: 3rem 1rem;

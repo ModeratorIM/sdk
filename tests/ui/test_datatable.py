@@ -42,11 +42,12 @@ def test_renders_beer_table_with_rows() -> None:
     assert 'data-label="Email"' in html  # responsive card-list label
 
 
-def test_bool_cell_is_a_status_pill() -> None:
+def test_bool_cell_is_an_icon() -> None:
     html = _table()
-    assert "mim-cell-pill" in html
-    assert ">Yes<" in html  # is_super_user True
-    assert ">No<" in html and "mim-cell-pill-off" in html  # is_super_user False
+    assert "mim-cell-bool" in html
+    assert ">check<" in html  # is_super_user True → check icon
+    assert ">close<" in html and "mim-cell-bool-off" in html  # is_super_user False → muted close
+    assert 'title="Yes"' in html and 'title="No"' in html  # accessible label
 
 
 def test_sortable_header_links_to_region_sort_toggle() -> None:
