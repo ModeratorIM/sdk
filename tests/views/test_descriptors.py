@@ -211,3 +211,28 @@ def test_app_mount_expands_viewroutes_with_roles() -> None:
         by[("/widgets", "GET")].resource_permission == "shop.widget"
         or by[("/widgets", "GET")].resource_permission == "widgets"
     )
+
+
+def test_route_action_and_mount_actions() -> None:
+    from moderatorim.sdk import App, Kind, RouteAction
+
+    async def define_role(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    ra = RouteAction(path="/admin/roles/define", handler=define_role, permission="admin.roles")
+    assert ra.methods == ("POST",) and ra.permission == "admin.roles"
+    with pytest.raises(ValueError, match="path"):
+        RouteAction(path="", handler=define_role)
+    with pytest.raises(ValueError, match="handler"):
+        RouteAction(path="/x", handler=None)
+
+    app = App()
+    app.mount((), actions=(ra,))
+    rd = next(r for r in app.routes if r.path == "/admin/roles/define")
+    assert rd.kind is Kind.ACTION and rd.methods == ("POST",)
+    assert rd.handler is define_role and rd.permission == "admin.roles"
+
+    # a role-gated RouteAction carries its roles= onto the RouteDef
+    app2 = App()
+    app2.mount((), actions=(RouteAction(path="/x", handler=define_role, roles=("r1",)),))
+    assert app2.routes[0].roles == ("r1",)

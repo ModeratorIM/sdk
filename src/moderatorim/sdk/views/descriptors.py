@@ -295,3 +295,31 @@ class ViewRoute:
     def __post_init__(self) -> None:
         if not self.path:
             raise ValueError("ViewRoute.path must be non-empty")
+
+
+@dataclass(frozen=True, slots=True)
+class RouteAction:
+    """A ``routes.py`` entry declaring a STANDALONE route-action (design §1) — a POST endpoint at
+    ``path`` invoking ``handler``, NOT attached to a generated form's record (the ``@app.action``
+    kind).
+
+    Named ``RouteAction`` (not ``Action``) so it never collides with the bus/event ``Action``. It is
+    the declarative form of ``@app.action``: put these in an app's ``actions.py`` as a tuple and
+    hand them to ``App.mount(actions=…)`` alongside the ``ViewRoute`` table. Distinct from
+    :class:`FormAction`, a button INSIDE a form (bound to a record at ``{base}/{id}/action``); a
+    ``RouteAction`` is a page-level mutation at its own path (e.g. ``/admin/roles/define``).
+
+    Gating: ``roles`` (route role gate, §1b L2) when set, else ``permission`` (the CRUD prefix).
+    """
+
+    path: str
+    handler: object  # a callable (ctx) -> Redirect|Rendered, like an @app.action body
+    permission: str | None = None
+    roles: tuple[str, ...] = ()
+    methods: tuple[str, ...] = ("POST",)
+
+    def __post_init__(self) -> None:
+        if not self.path:
+            raise ValueError("RouteAction.path must be non-empty")
+        if self.handler is None:
+            raise ValueError("RouteAction.handler is required")
