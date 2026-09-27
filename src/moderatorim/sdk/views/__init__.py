@@ -1,6 +1,7 @@
 """The model-driven view descriptors domain (declarative; core renders them)."""
 
 from moderatorim.sdk.views.descriptors import (
+    CalendarView,
     Field,
     FormAction,
     FormFields,
@@ -15,6 +16,7 @@ from moderatorim.sdk.views.descriptors import (
 )
 
 __all__ = [
+    "CalendarView",
     "Field",
     "FormAction",
     "FormFields",

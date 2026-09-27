@@ -67,6 +67,7 @@ from moderatorim.sdk.validation import (
     validate_form,
 )
 from moderatorim.sdk.views import (
+    CalendarView,
     Field,
     FormAction,
     FormFields,
@@ -133,6 +134,7 @@ __all__ = [
     "ListView",
     "PageView",
     "ViewModel",
+    "CalendarView",
     "ViewRoute",
     "FormView",
     "FormTab",

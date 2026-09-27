@@ -124,3 +124,20 @@ def test_view_extension_and_app_extend_view() -> None:
     app = App()
     app.extend_view("/shop/orders", add_tabs=(FormTab(label="Shipping"),))
     assert len(app.extensions) == 1 and app.extensions[0].target == "/shop/orders"
+
+
+def test_calendar_view_descriptor_and_facade() -> None:
+    from moderatorim.sdk import App, CalendarView, Kind
+
+    cal = CalendarView(start_field="starts_at", title_field="subject", end_field="ends_at")
+    assert cal.start_field == "starts_at" and cal.title_field == "subject"
+    with pytest.raises(ValueError, match="start_field"):
+        CalendarView(start_field="", title_field="t")
+    with pytest.raises(ValueError, match="title_field"):
+        CalendarView(start_field="s", title_field="")
+
+    app = App()
+    app.calendar_view("/events", model=object(), view=cal, permission="cal.events")
+    r = app.routes[0]
+    assert r.kind is Kind.CALENDAR and r.methods == ("GET",)
+    assert r.permission == "cal.events.read" and r.resource_permission == "cal.events"

@@ -188,6 +188,26 @@ class ViewExtension:
 
 
 @dataclass(frozen=True, slots=True)
+class CalendarView:
+    """A month calendar over a model (design §6). Renders records as events positioned by a
+    DATE/DATETIME ``start_field``; ``title_field`` is the event label; optional ``end_field`` spans
+    multi-day events. v1 = server-rendered month grid + prev/next navigation (``?month=YYYY-MM``);
+    clicking an event opens the record's edit Form, an empty day opens the new Form with the date
+    pre-filled. Fetches the month's records with a date-range filter under the hood.
+    """
+
+    start_field: str
+    title_field: str
+    end_field: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.start_field:
+            raise ValueError("CalendarView.start_field (the DATE/DATETIME field) is required")
+        if not self.title_field:
+            raise ValueError("CalendarView.title_field (the event label field) is required")
+
+
+@dataclass(frozen=True, slots=True)
 class ViewModel:
     """A READ-ONLY reference to a table a view reads — NOT a model declaration.
 

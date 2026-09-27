@@ -16,6 +16,7 @@ class Kind(Enum):
         auto()
     )  # a generated model-driven List page (core expands it into a query→render handler)
     FORM = auto()  # a generated model-driven Form route (core expands it into a handler)
+    CALENDAR = auto()  # a generated model-driven Calendar month page (core expands it)
 
 
 @dataclass
@@ -177,6 +178,28 @@ class App:
     def extensions(self) -> list[Any]:
         """The recorded cross-app view extensions (core reads these at boot)."""
         return list(self._extensions)
+
+    def calendar_view(self, path: str, *, model: Any, view: Any, permission: str) -> None:
+        """Record a generated Calendar month page (design §6, ``Kind.CALENDAR``) at ``path``, gated
+        at ``{permission}.read``. Core supplies the query→render handler at build time (fetches the
+        month's records by date range and renders the grid). Pair with ``form_view`` on the same
+        resource so event/day clicks open the edit/new forms."""
+        self._routes.append(
+            RouteDef(
+                path,
+                ("GET",),
+                handler=self._unset_calendar_handler,
+                kind=Kind.CALENDAR,
+                model=model,
+                view=view,
+                permission=f"{permission}.read",
+                resource_permission=permission,
+            )
+        )
+
+    @staticmethod
+    async def _unset_calendar_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
+        raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
 
     def action(
         self, path: str, *, methods: tuple[str, ...] = ("POST",), permission: str | None = None
