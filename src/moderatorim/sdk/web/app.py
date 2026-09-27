@@ -51,6 +51,7 @@ class App:
 
     def __init__(self) -> None:
         self._routes: list[RouteDef] = []
+        self._extensions: list[Any] = []  # ViewExtension declarations (cross-app form injection)
 
     def page(
         self,
@@ -152,6 +153,30 @@ class App:
                     permission=f"{permission}.update",
                 )
             )
+
+    def extend_view(
+        self,
+        target: str,
+        *,
+        add_tabs: tuple[Any, ...] = (),
+        add_actions: tuple[Any, ...] = (),
+    ) -> None:
+        """Inject tabs/actions into ANOTHER resource's Form (design §5b), keyed by the target form's
+        base path (e.g. ``"/shop/orders"``). Core collects these across apps and merges them into
+        the target FormView at render, gated by the injected tabs'/actions' own ``roles``. The
+        injecting app must ALSO register a ``form_view`` action route for any injected FormAction —
+        use ``form_view`` for a whole owned resource; ``extend_view`` only augments another's form.
+        """
+        from moderatorim.sdk.views import ViewExtension
+
+        self._extensions.append(
+            ViewExtension(target=target, add_tabs=add_tabs, add_actions=add_actions)
+        )
+
+    @property
+    def extensions(self) -> list[Any]:
+        """The recorded cross-app view extensions (core reads these at boot)."""
+        return list(self._extensions)
 
     def action(
         self, path: str, *, methods: tuple[str, ...] = ("POST",), permission: str | None = None
