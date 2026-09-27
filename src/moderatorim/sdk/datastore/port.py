@@ -47,6 +47,25 @@ class Filter:
             raise ValueError("FilterOp.IN requires a list/tuple/set value")
 
 
+@dataclass(frozen=True, slots=True)
+class Search:
+    """A free-text search: match ``term`` (case-insensitive substring) against ANY of ``fields``.
+
+    This is the ONE place the query surface expresses OR — a search box types one term that may
+    match several columns. Backends emit ``(field1 ILIKE %term% OR field2 ILIKE %term% …)`` and AND
+    that group with the :class:`Filter` list (which stays AND-only). The generic filter list is
+    deliberately NOT extended to carry OR — search is a distinct, bounded, typed capability, so no
+    backend has to grow an arbitrary boolean-expression engine. LIKE metacharacters in ``term`` are
+    treated as literals by the backend (escaped), so a ``%`` in a search box is not a wildcard. An
+    empty ``term`` or empty ``fields`` is a no-op (matches all rows)."""
+
+    term: str
+    fields: tuple[str, ...]
+
+    def is_empty(self) -> bool:
+        return not self.term or not self.fields
+
+
 # Module-scope aliases so annotations don't resolve `list` inside the class (where the `list`
 # METHOD shadows the builtin under string-evaluated annotations).
 FilterList = list[Filter]
@@ -78,8 +97,10 @@ class DataStore(Protocol):
         offset: int = 0,
         order_by: str | None = None,
         descending: bool = False,
+        search: Search | None = None,
     ) -> RecordList:
-        """Return records matching ALL ``filters`` (ANDed), with optional paging/ordering."""
+        """Return records matching ALL ``filters`` (ANDed) AND, when given, the ``search`` group
+        (its fields ORed), with optional paging/ordering."""
         ...
 
     async def create(self, table: str, data: Record) -> Record:
@@ -94,8 +115,10 @@ class DataStore(Protocol):
         """Delete by id. Soft delete (set ``deleted_at``) when the schema enables it, else hard."""
         ...
 
-    async def count(self, table: str, filters: FilterList | None = None) -> int:
-        """Count records matching ALL ``filters`` (ANDed)."""
+    async def count(
+        self, table: str, filters: FilterList | None = None, *, search: Search | None = None
+    ) -> int:
+        """Count records matching ALL ``filters`` (ANDed) AND the optional ``search`` group."""
         ...
 
 
