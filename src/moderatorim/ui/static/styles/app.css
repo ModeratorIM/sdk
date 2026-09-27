@@ -441,6 +441,8 @@ main.responsive {
 .mim-auth-card {
   width: 100%;
   max-width: 480px;
+  background: transparent;
+  box-shadow: none;
 }
 /* Night-mode toggle, pinned to the top-right corner (independent of any app bar). */
 .mim-auth-toggle {
@@ -510,6 +512,10 @@ main.responsive {
 }
 .mim-auth-methods:has(.mim-auth-method-radio:checked) ~ .mim-auth-form-card {
   display: block;
+}
+/* Once a method is selected (the form card shows), hide the button list. */
+.mim-auth-methods:has(.mim-auth-method-radio:checked) {
+  display: none;
 }
 /* Inside the card, only the checked method's form panel shows. */
 .mim-auth-method-panel {
