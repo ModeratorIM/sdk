@@ -70,6 +70,7 @@ from moderatorim.sdk.views import (
     Field,
     ListView,
     PageView,
+    ViewModel,
     ViewRoute,
 )
 from moderatorim.sdk.web import (
@@ -125,6 +126,7 @@ __all__ = [
     "Field",
     "ListView",
     "PageView",
+    "ViewModel",
     "ViewRoute",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",

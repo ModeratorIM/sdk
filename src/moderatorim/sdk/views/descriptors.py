@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from moderatorim.sdk.models.field import TableColumn
+
 
 @dataclass(frozen=True, slots=True)
 class Field:
@@ -73,6 +75,42 @@ class ListView:
     def ordered_fields(self) -> tuple[Field, ...]:
         """Fields sorted by their declared ``order`` (stable)."""
         return tuple(sorted(self.fields, key=lambda f: f.order))
+
+
+@dataclass(frozen=True, slots=True)
+class ViewModel:
+    """A READ-ONLY reference to a table a view reads — NOT a model declaration.
+
+    A view often lists a table another unit OWNS (e.g. the admin app lists ``core_user``). The app
+    must not declare a :class:`~moderatorim.sdk.TableModel` for it: that would MINT the table into
+    ``manifest.models`` and the boot ownership guard forbids a non-owning unit declaring a foreign
+    (``{other}_``) table. A ``ViewModel`` is a REFERENCE instead — the same "declare vs reference"
+    line the guard already draws for ``permission=`` strings — carrying just the column metadata the
+    view engine needs (name, type, label, relation, choices, display). It is never provisioned and
+    never validated for ownership; it only describes columns the view renders/filters.
+
+    Exposes the same read surface the engine uses on a ``TableModel`` (``name`` / ``column_map`` /
+    ``display_label``), so it is a drop-in for :class:`PageView`'s ``model``.
+    """
+
+    name: str  # the physical table it reads (may be another unit's, e.g. "core_user")
+    columns: tuple[TableColumn, ...] = ()
+    label: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name:
+            raise ValueError("ViewModel.name (the table it reads) is required")
+
+    @property
+    def column_map(self) -> dict[str, TableColumn]:
+        return {c.name: c for c in self.columns}
+
+    @property
+    def display_label(self) -> str:
+        if self.label:
+            return self.label
+        tail = self.name.split("_", 1)[-1] if "_" in self.name else self.name
+        return tail.replace("_", " ").title()
 
 
 @dataclass(frozen=True, slots=True)
