@@ -36,6 +36,20 @@ def test_usage_block_is_present() -> None:
     assert "moderatorim create app" in page
 
 
+def test_examples_section_renders_for_commands_with_examples() -> None:
+    page = docsgen.render_pages()["create-app"]
+    assert "## Examples" in page
+    # A realistic invocation and its simulated output appear.
+    assert 'moderatorim create app billing --display-name "Billing"' in page
+    assert "Created app 'billing'" in page
+
+
+def test_examples_absent_when_no_authored_examples() -> None:
+    # The top-level `create` grouping command has no authored examples -> no Examples section.
+    page = docsgen.render_pages()["create"]
+    assert "## Examples" not in page
+
+
 def test_removed_verb_disappears() -> None:
     """A parser without the 'generate' verb produces no generate pages (no orphans)."""
     parser = argparse.ArgumentParser(prog="moderatorim", description="test")
