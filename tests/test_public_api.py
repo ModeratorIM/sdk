@@ -59,6 +59,7 @@ EXPECTED_PUBLIC_API = {
     "ListView",
     "PageView",
     "ViewModel",
+    "CalendarView",
     "ViewRoute",
     "FormView",
     "FormTab",
