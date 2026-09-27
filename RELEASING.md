@@ -33,7 +33,14 @@ it — forcing a conscious version + CHANGELOG decision before merge. Combined w
    classified Added / Changed / Removed / Deprecated / Fixed.
 3. To release: bump `version`, rename the CHANGELOG `[Unreleased]` section to `X.Y.Z` + date, tag
    `vX.Y.Z` on `main`, push the tag. (CI publishes the tag once a publish workflow exists.)
-4. **(Planned)** `release-please` will read the merged Conventional-Commit PR titles, compute the
+4. On a pushed `v*` tag, the `publish-docs` workflow regenerates the SDK API + CLI reference
+   Markdown (from docstrings and the CLI parser) and opens a pull request into the docs repo
+   (`ModeratorIM/docs`) with the refreshed `sdk/sdk/reference/` and `sdk/cli/reference/` trees.
+   The generated Markdown is a build artifact — never hand-edited; to change it, fix the source
+   docstrings / CLI help here and re-release. Requires the `DOCS_PUBLISH_TOKEN` repo secret (a
+   token that can push a branch and open a PR in the docs repo). It can also be run manually via
+   `workflow_dispatch` to test the wiring before a real tag.
+5. **(Planned)** `release-please` will read the merged Conventional-Commit PR titles, compute the
    next version, update the CHANGELOG, and open a release PR — deferred until the first tagged
    release; until then, bump by hand per the table above.
 

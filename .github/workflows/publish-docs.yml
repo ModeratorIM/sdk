@@ -1,0 +1,91 @@
+name: publish-docs
+
+# Phase 3 of the generated SDK/CLI reference (Option A): on an SDK release the reference Markdown
+# is generated HERE (beside the code it documents) and published as a pull request into the docs
+# repo (ModeratorIM/docs), which stays a pure Node build consuming committed Markdown.
+#
+# Triggers:
+#   * a pushed release tag `v*` — the real path, so the reference tracks each release;
+#   * manual `workflow_dispatch` — to smoke-test the wiring before the first real tag.
+#
+# Requires a repo secret `DOCS_PUBLISH_TOKEN`: a token that can push a branch and open a PR in
+# ModeratorIM/docs (a fine-grained PAT scoped to that repo's Contents + Pull requests, or a GitHub
+# App token). The default GITHUB_TOKEN cannot reach another repository.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the SDK
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the SDK with the docs extra
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+
+      - name: Generate the reference Markdown
+        run: |
+          set -euo pipefail
+          rm -rf out
+          # SDK API reference (moderatorim.sdk + moderatorim.ui) beside the hand-written sdk/ overview.
+          python -m moderatorim.sdk_docsgen out/sdk/sdk/reference
+          # CLI reference (the moderatorim argparse parser) beside the hand-written cli overview.
+          python -m moderatorim.cli.docsgen out/sdk/cli/reference
+          echo "Generated files:"
+          find out -type f | sort
+
+      - name: Record the documented version
+        id: ver
+        run: |
+          V=$(python -c "import importlib.metadata as m; print(m.version('moderatorim-sdk'))")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the docs repo
+        uses: actions/checkout@v4
+        with:
+          repository: ModeratorIM/docs
+          token: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+          path: docs-repo
+
+      - name: Copy generated reference into the docs tree
+        run: |
+          set -euo pipefail
+          DEST=docs-repo/src/content/docs
+          # Fully replace the generated reference trees so a removed symbol/command leaves no orphan.
+          rm -rf "$DEST/sdk/sdk/reference" "$DEST/sdk/cli/reference"
+          mkdir -p "$DEST/sdk/sdk" "$DEST/sdk/cli"
+          cp -R out/sdk/sdk/reference "$DEST/sdk/sdk/reference"
+          cp -R out/sdk/cli/reference "$DEST/sdk/cli/reference"
+
+      - name: Open a pull request into the docs repo
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+          path: docs-repo
+          branch: docs/sdk-reference-${{ steps.ver.outputs.version }}
+          base: main
+          commit-message: "docs: regenerate SDK & CLI reference for moderatorim-sdk ${{ steps.ver.outputs.version }}"
+          title: "docs: SDK & CLI reference for moderatorim-sdk ${{ steps.ver.outputs.version }}"
+          body: |
+            Automated by the `moderatorim-sdk` `publish-docs` workflow.
+
+            Regenerated SDK API + CLI reference Markdown for **moderatorim-sdk ${{ steps.ver.outputs.version }}**.
+            These files are build artifacts — do not hand-edit; fix the source docstrings / CLI help
+            in the SDK repo and re-release. The drift-guard CI here verifies they match the release.
+          add-paths: |
+            src/content/docs/sdk/sdk/reference/**
+            src/content/docs/sdk/cli/reference/**
