@@ -4,7 +4,27 @@ from __future__ import annotations
 
 import pytest
 
-from moderatorim.sdk import DataStore, Filter, FilterOp
+from moderatorim.sdk import DataStore, Filter, FilterOp, TableAccessDenied
+
+
+def test_table_access_denied_carries_context() -> None:
+    err = TableAccessDenied("moderation_report", "list", "user:42")
+    assert err.table == "moderation_report"
+    assert err.op == "list"
+    assert err.principal == "user:42"
+    msg = str(err)
+    assert "moderation_report" in msg and "list" in msg and "user:42" in msg
+
+
+def test_table_access_denied_principal_optional() -> None:
+    err = TableAccessDenied("core_role", "create")
+    assert err.principal == ""
+    assert "core_role" in str(err) and "create" in str(err)
+
+
+def test_table_access_denied_is_exception() -> None:
+    with pytest.raises(TableAccessDenied):
+        raise TableAccessDenied("t", "get")
 
 
 def test_filter_in_requires_sequence() -> None:
