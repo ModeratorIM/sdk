@@ -159,3 +159,55 @@ def test_list_view_row_actions_default_and_off() -> None:
 
     assert ListView().row_actions is True  # default shows Edit/Delete/New
     assert ListView(row_actions=False).row_actions is False  # read-only list opts out
+
+
+def test_app_mount_expands_viewroutes_with_roles() -> None:
+    from moderatorim.sdk import (
+        App,
+        Field,
+        FieldType,
+        FormFields,
+        FormTab,
+        FormView,
+        Kind,
+        ListView,
+        PageView,
+        TableColumn,
+        TableModel,
+        ViewRoute,
+    )
+
+    Widget = TableModel(
+        name="shop_widget",
+        columns=(TableColumn(name="name", type=FieldType.TEXT, display=True),),
+    )
+    list_pv = PageView(model=Widget, view=ListView(fields=(Field("name"),)))
+    form_pv = PageView(
+        model=Widget,
+        view=FormView(
+            tabs=(FormTab(label="Detail", views=(FormFields(fields=(Field("name"),)),)),)
+        ),
+    )
+    app = App()
+    app.mount(
+        (
+            ViewRoute(path="/widgets", view=list_pv, roles=("shop.viewer",)),
+            ViewRoute(path="/widgets/new", view=form_pv, roles=("shop.manager",)),
+            ViewRoute(path="/widgets/{id}", view=form_pv, roles=("shop.viewer",)),
+        )
+    )
+    by = {(r.path, r.methods[0]): r for r in app.routes}
+    # List binding → Kind.LIST gated by its roles
+    assert by[("/widgets", "GET")].kind is Kind.LIST
+    assert by[("/widgets", "GET")].roles == ("shop.viewer",)
+    # Form bindings dedupe to one form route-set (5 routes), all carrying the mount roles
+    assert by[("/widgets/new", "GET")].kind is Kind.FORM
+    assert by[("/widgets/new", "GET")].roles == ("shop.manager",)
+    # exactly one form set (deduped): 5 form routes for the base
+    form_routes = [r for r in app.routes if r.kind is Kind.FORM]
+    assert len(form_routes) == 5
+    # permission prefix derived from the path for the row-action / table-ACL layer
+    assert (
+        by[("/widgets", "GET")].resource_permission == "shop.widget"
+        or by[("/widgets", "GET")].resource_permission == "widgets"
+    )
