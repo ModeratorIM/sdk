@@ -15,6 +15,7 @@ from moderatorim.sdk.bus import (
     EventBus,
     EventKind,
     Handler,
+    Subscription,
 )
 from moderatorim.sdk.cachestore import (
     CacheStore,
@@ -124,6 +125,7 @@ __all__ = [
     "Action",
     "ActionKind",
     "EventBus",
+    "Subscription",
     "Handler",
     # manifest
     "Manifest",

@@ -48,6 +48,7 @@ EXPECTED_PUBLIC_API = {
     "Action",
     "ActionKind",
     "EventBus",
+    "Subscription",
     "Handler",
     # manifest / registry
     "Manifest",
