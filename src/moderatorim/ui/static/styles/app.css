@@ -509,6 +509,10 @@ main.responsive {
   width: 300px;
   justify-content: center;
   border-radius: 0.25rem;
+  /* Theme-aware "white": the theme surface (near-white in light mode, dark surface in dark mode)
+     with its paired readable text, so the button stays legible across theme changes. */
+  background: var(--surface);
+  color: var(--on-surface);
 }
 /* The card, HIDDEN until a method is selected (no radio checked → just the buttons show). Shown
    when the button list has a checked radio. */
@@ -534,14 +538,17 @@ main.responsive {
 .mim-auth-methods:has(#mim-auth-m3:checked) ~ .mim-auth-form-card [data-method="mim-auth-m3"] {
   display: block;
 }
-/* Selected method button: filled primary; unselected: outline. */
+/* Selected method button: white (surface) background kept, marked by a primary border + label.
+   Unselected: same surface background, subtle outline. Both theme-aware (surface/on-surface flip
+   with the theme). */
 .mim-auth-method-choice:has(.mim-auth-method-radio:checked) .mim-auth-method-button {
-  background: var(--primary);
-  color: var(--on-primary);
+  background: var(--surface);
+  color: var(--primary);
+  border: 2px solid var(--primary);
 }
 .mim-auth-method-choice:has(.mim-auth-method-radio:not(:checked)) .mim-auth-method-button {
-  background: transparent;
-  color: var(--primary);
+  background: var(--surface);
+  color: var(--on-surface);
   border: 1px solid var(--outline-variant);
 }
 
