@@ -216,7 +216,12 @@ class App:
         raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
 
     def mount(
-        self, routes: tuple[Any, ...], *, permission: str | None = None, enrich: Any = None
+        self,
+        routes: tuple[Any, ...],
+        *,
+        actions: tuple[Any, ...] = (),
+        permission: str | None = None,
+        enrich: Any = None,
     ) -> None:
         """Register a declarative ``routes.py`` table of :class:`ViewRoute` bindings (design §1).
 
@@ -234,6 +239,10 @@ class App:
 
         ``enrich`` is an optional ``async (ctx, rows) -> None`` hook applied to every LIST binding
         mounted here (see :meth:`list_view`), for per-row computed cells that join other tables.
+
+        ``actions`` is a tuple of :class:`RouteAction` — standalone route-actions (the declarative
+        form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by its ``roles=``
+        (else its ``permission``, else the resource prefix). Keep these in the app's ``actions.py``.
         """
         from moderatorim.sdk.views import CalendarView, FormView, ListView
 
@@ -260,6 +269,21 @@ class App:
                 self._stamp_roles(start, r.roles)
             else:  # pragma: no cover - guarded by PageView, but fail loud on a new view type
                 raise TypeError(f"ViewRoute at {r.path!r} has an unsupported view {type(inner)!r}")
+
+        # Standalone route-actions (design §1): each RouteAction -> a Kind.ACTION RouteDef, gated by
+        # its roles= (route role gate) when set, else its permission (falling back to the resource
+        # prefix). The declarative form of @app.action.
+        for a in actions:
+            self._routes.append(
+                RouteDef(
+                    a.path,
+                    a.methods,
+                    handler=a.handler,
+                    kind=Kind.ACTION,
+                    permission=a.permission or (permission or self._path_to_permission(a.path)),
+                    roles=tuple(a.roles),
+                )
+            )
 
     def _stamp_roles(self, start_index: int, roles: tuple[str, ...]) -> None:
         """Set roles= on every RouteDef appended since ``start_index`` (the just-mounted view)."""

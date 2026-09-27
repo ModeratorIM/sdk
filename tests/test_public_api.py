@@ -66,6 +66,7 @@ EXPECTED_PUBLIC_API = {
     "FormFields",
     "FormOverview",
     "FormAction",
+    "RouteAction",
     "ViewExtension",
     # validation
     "Validator",
