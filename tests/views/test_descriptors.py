@@ -68,3 +68,42 @@ def test_viewroute_binds_path_view_roles() -> None:
     assert r.path == "/users" and r.roles == ("admin.users.read",) and r.view is pv
     with pytest.raises(ValueError, match="path"):
         ViewRoute(path="", view=pv)
+
+
+def test_form_descriptors() -> None:
+    from moderatorim.sdk import (
+        FormAction,
+        FormFields,
+        FormOverview,
+        FormTab,
+        FormView,
+    )
+
+    ff = FormFields(fields=(Field("email"), Field("bio", span=2)), columns=2)
+    assert ff.columns == 2
+    with pytest.raises(ValueError, match="columns"):
+        FormFields(columns=0)
+
+    tab = FormTab(
+        label="Detail",
+        order=10,
+        views=(FormFields(fields=(Field("email"),), order=20), FormOverview(order=10)),
+    )
+    # ordered_views sorts child views by their order (overview 10 before fields 20)
+    assert [type(v).__name__ for v in tab.ordered_views] == ["FormOverview", "FormFields"]
+    with pytest.raises(ValueError, match="label"):
+        FormTab(label="")
+
+    act = FormAction(label="Make super", handler=lambda ctx: None, roles=("admin.manager",))
+    assert act.label == "Make super"
+    with pytest.raises(ValueError, match="handler"):
+        FormAction(label="x", handler=None)
+
+    fv = FormView(
+        tabs=(FormTab(label="B", order=20), FormTab(label="A", order=10)),
+        actions=(act,),
+    )
+    assert [t.label for t in fv.ordered_tabs] == ["A", "B"]  # by order
+    assert fv.ordered_actions[0] is act
+    with pytest.raises(ValueError, match="at least one FormTab"):
+        FormView(tabs=())

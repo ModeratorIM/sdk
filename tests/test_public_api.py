@@ -60,6 +60,11 @@ EXPECTED_PUBLIC_API = {
     "PageView",
     "ViewModel",
     "ViewRoute",
+    "FormView",
+    "FormTab",
+    "FormFields",
+    "FormOverview",
+    "FormAction",
     # validation
     "Validator",
     "Required",

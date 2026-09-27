@@ -68,6 +68,11 @@ from moderatorim.sdk.validation import (
 )
 from moderatorim.sdk.views import (
     Field,
+    FormAction,
+    FormFields,
+    FormOverview,
+    FormTab,
+    FormView,
     ListView,
     PageView,
     ViewModel,
@@ -128,6 +133,11 @@ __all__ = [
     "PageView",
     "ViewModel",
     "ViewRoute",
+    "FormView",
+    "FormTab",
+    "FormFields",
+    "FormOverview",
+    "FormAction",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",
     "Required",
