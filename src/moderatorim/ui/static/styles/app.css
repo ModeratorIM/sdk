@@ -447,7 +447,7 @@ main.responsive {
 .mim-auth-method-card {
   width: 100%;
   max-width: 480px;
-  background: transparent;
+  background: transparent !important;
   box-shadow: none;
 }
 /* Night-mode toggle, pinned to the top-right corner (independent of any app bar). */
