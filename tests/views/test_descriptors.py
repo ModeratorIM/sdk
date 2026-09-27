@@ -4,7 +4,25 @@ from __future__ import annotations
 
 import pytest
 
-from moderatorim.sdk import Field, ListView, PageView, ViewRoute
+from moderatorim.sdk import Field, FieldType, ListView, PageView, TableColumn, ViewModel, ViewRoute
+
+
+def test_viewmodel_read_surface_mirrors_tablemodel() -> None:
+    vm = ViewModel(
+        name="core_user",
+        columns=(
+            TableColumn(name="email", type=FieldType.TEXT, display=True),
+            TableColumn(name="active", type=FieldType.BOOLEAN),
+        ),
+    )
+    assert vm.name == "core_user"
+    assert set(vm.column_map) == {"email", "active"}
+    assert vm.display_label == "User"  # derived from core_user
+    assert ViewModel(name="core_user", label="People").display_label == "People"
+    import pytest
+
+    with pytest.raises(ValueError, match="required"):
+        ViewModel(name="")
 
 
 def test_field_defaults_and_validation() -> None:

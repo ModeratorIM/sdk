@@ -58,6 +58,7 @@ EXPECTED_PUBLIC_API = {
     "Field",
     "ListView",
     "PageView",
+    "ViewModel",
     "ViewRoute",
     # validation
     "Validator",
