@@ -170,6 +170,24 @@ class FormView:
 
 
 @dataclass(frozen=True, slots=True)
+class ViewExtension:
+    """A cross-app injection into another resource's Form (design §5b), keyed by the target form's
+    base path (e.g. ``/shop/orders``). The extending app OWNS the injected tabs/actions — they are
+    gated by their own ``roles`` (a FormTab's / FormAction's ``roles``), resolved at boot, merged
+    into the target FormView's tabs/actions (by ``order``), and disappear when the app is
+    uninstalled. Injection does NOT change page access — the target's own route gate still applies.
+    """
+
+    target: str  # the target form's base path
+    add_tabs: tuple[FormTab, ...] = ()
+    add_actions: tuple[FormAction, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.target:
+            raise ValueError("ViewExtension.target (the target form's base path) is required")
+
+
+@dataclass(frozen=True, slots=True)
 class ViewModel:
     """A READ-ONLY reference to a table a view reads — NOT a model declaration.
 

@@ -9,6 +9,7 @@ from moderatorim.sdk.views.descriptors import (
     FormView,
     ListView,
     PageView,
+    ViewExtension,
     ViewModel,
     ViewRoute,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "FormView",
     "ListView",
     "PageView",
+    "ViewExtension",
     "ViewModel",
     "ViewRoute",
 ]

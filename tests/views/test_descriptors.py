@@ -107,3 +107,20 @@ def test_form_descriptors() -> None:
     assert fv.ordered_actions[0] is act
     with pytest.raises(ValueError, match="at least one FormTab"):
         FormView(tabs=())
+
+
+def test_view_extension_and_app_extend_view() -> None:
+    from moderatorim.sdk import App, FormAction, FormTab, ViewExtension
+
+    ext = ViewExtension(
+        target="/shop/orders",
+        add_tabs=(FormTab(label="Shipping"),),
+        add_actions=(FormAction(label="Refund", handler=lambda ctx: None),),
+    )
+    assert ext.target == "/shop/orders" and len(ext.add_tabs) == 1
+    with pytest.raises(ValueError, match="target"):
+        ViewExtension(target="")
+
+    app = App()
+    app.extend_view("/shop/orders", add_tabs=(FormTab(label="Shipping"),))
+    assert len(app.extensions) == 1 and app.extensions[0].target == "/shop/orders"

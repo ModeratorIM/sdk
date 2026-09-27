@@ -75,6 +75,7 @@ from moderatorim.sdk.views import (
     FormView,
     ListView,
     PageView,
+    ViewExtension,
     ViewModel,
     ViewRoute,
 )
@@ -138,6 +139,7 @@ __all__ = [
     "FormFields",
     "FormOverview",
     "FormAction",
+    "ViewExtension",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",
     "Required",
