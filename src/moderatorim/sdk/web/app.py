@@ -220,6 +220,7 @@ class App:
         routes: tuple[Any, ...],
         *,
         actions: tuple[Any, ...] = (),
+        pages: tuple[Any, ...] = (),
         permission: str | None = None,
         enrich: Any = None,
     ) -> None:
@@ -243,6 +244,12 @@ class App:
         ``actions`` is a tuple of :class:`RouteAction` — standalone route-actions (the declarative
         form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by its ``roles=``
         (else its ``permission``, else the resource prefix). Keep these in the app's ``actions.py``.
+
+        ``pages`` is a tuple of :class:`PageRoute` — custom GET pages (the declarative form of
+        ``@app.page``), each expanded into a ``Kind.PAGE`` route served by its ``handler``, gated by
+        its ``roles=`` (else its ``permission``). This lets ``routes.py`` be uniformly tuples of
+        declaration objects with no decorators — the escape-hatch page for a screen the view
+        generator cannot express.
         """
         from moderatorim.sdk.views import CalendarView, FormView, ListView
 
@@ -282,6 +289,23 @@ class App:
                     kind=Kind.ACTION,
                     permission=a.permission or (permission or self._path_to_permission(a.path)),
                     roles=tuple(a.roles),
+                )
+            )
+
+        # Custom GET pages (design §7.4): each PageRoute -> a Kind.PAGE RouteDef served by its
+        # handler, gated by its roles= when set, else its permission. The declarative form of
+        # @app.page — the escape hatch for a screen the view generator cannot express.
+        for p in pages:
+            self._routes.append(
+                RouteDef(
+                    p.path,
+                    ("GET",),
+                    handler=p.handler,
+                    kind=Kind.PAGE,
+                    title=p.title,
+                    permission=p.permission,
+                    nav=p.nav,
+                    roles=tuple(p.roles),
                 )
             )
 
