@@ -8,6 +8,16 @@
   --mim-content-max: 768px;
   --mim-rail-width: 240px;
   --mim-rail-width-mini: 72px;
+
+  /* Generated-view layout/spacing (ui-view-design). MODE-AGNOSTIC — colours come from Beer/theme
+     tokens (--surface, --on-surface, --surface-variant, --primary, --outline-variant, --error) at
+     use-site, never hard-coded here. */
+  --mim-view-radius: 1rem;       /* view card corner (matches app card radius) */
+  --mim-view-gap: 0.75rem;       /* toolbar / control spacing rhythm */
+  --mim-view-pad: 1rem;          /* card + toolbar padding */
+  --mim-row-height: 3rem;        /* comfortable data-table row (~48px) */
+  --mim-field-radius: 0.5rem;    /* pill/field corner (search, chips) */
+  --mim-touch: 44px;             /* min touch target on mobile */
 }
 
 /* ---- Authenticated app shell: left nav rail (dark-purple) + content ------------------------ */
@@ -52,7 +62,10 @@
 .mim-app-content {
   flex: 1 1 auto;
   min-width: 0;
-  background: var(--surface);
+  height: 100vh;
+  overflow-y: auto;      /* content scrolls inside the pane… */
+  padding: 0;
+  background: var(--mim-scaffold);   /* page scaffold — #eee in light, dark surface in dark */
   color: var(--on-surface);
 }
 /* Scrim behind the mobile drawer (hidden until the drawer opens). */
@@ -136,17 +149,27 @@ body.mim-nav-drawer-open .mim-scrim {
   padding: 0;
   margin: 0;
   min-block-size: auto;
+  /* …while the header stays static (pinned) at the top of the scrolling pane. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--mim-surface);
 }
 .mim-content-header {
-  padding: 0;
+  padding: 0.5rem 1rem;
   margin: 0;
   min-block-size: auto;
+  border-bottom: 1px solid var(--outline-variant);
 }
 .mim-content-header .mim-page-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.4;
+}
+/* The app screen content wrapper — the header spans the pane full-width above; this is inset. */
+.mim-app-body {
+  padding: 1rem;
 }
 
 /* Rail nav items. */
@@ -696,3 +719,141 @@ main.responsive {
 }
 .mim-cols-item { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .mim-cols-form button { margin-top: 0.35rem; align-self: flex-start; }
+
+/* --- Model-driven List view (ui-view-design, Stage 1) ---------------------- */
+/* A modern Material data table in a surface card. Colours from Beer/theme tokens; layout from
+   the --mim-view-* / --mim-row-height vars. Scoped under .mim-list — no global element bleed. */
+.mim-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-view-radius);
+  overflow: hidden; /* clip the sticky header + rounded corners */
+}
+.mim-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline-variant);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+/* Search: a pill field that grows to fill the left of the toolbar. (Final polish deferred.) */
+.mim-list-search {
+  flex: 1 1 12rem;
+  min-height: var(--mim-touch);
+  padding: 0 0.9rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 2rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+}
+.mim-list-search:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+/* Filter + columns disclosures + New push to the right of the search. */
+.mim-list-filters, .mim-list-toolbar > .mim-cols-editor { flex: 0 0 auto; }
+.mim-list-filters { display: inline-block; position: relative; }
+.mim-list-filters > summary { list-style: none; cursor: pointer; }
+.mim-list-filters > summary::-webkit-details-marker { display: none; }
+.mim-filter-builder {
+  position: absolute; z-index: 20; margin-top: 0.35rem; min-width: 14rem;
+  display: flex; flex-direction: column; gap: 0.5rem; padding: var(--mim-view-pad);
+  background: var(--surface); color: var(--on-surface);
+  border: 1px solid var(--outline-variant); border-radius: 0.6rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.mim-filter-field { width: 100%; }
+/* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
+.mim-list-table { width: 100%; border-collapse: collapse; }
+.mim-list-table thead th {
+  position: sticky; top: 0;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  border-bottom: 1px solid var(--outline-variant);
+  white-space: nowrap;
+}
+.mim-list-table thead th a { text-decoration: none; color: inherit; }
+.mim-list-table thead th a:hover { color: var(--primary); }
+.mim-list-table tbody td {
+  padding: 0 1rem;
+  height: var(--mim-row-height);
+  border-bottom: 1px solid var(--outline-variant);
+  vertical-align: middle;
+}
+.mim-list-table tbody tr:last-child td { border-bottom: 0; }
+.mim-list-table tbody tr:hover td { background: var(--surface-variant); }
+/* Clickable rows (edit-on-click) — pointer affordance; the action buttons still fire their own. */
+.mim-list-table tbody tr.mim-list-row { cursor: pointer; }
+/* Row actions: trailing, right-aligned, revealed/emphasized on row hover. */
+.mim-list-table td.mim-list-actions {
+  text-align: right; white-space: nowrap;
+  display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center;
+  height: var(--mim-row-height);
+}
+.mim-list-table td.mim-list-actions .button { opacity: 0.75; transition: opacity 0.1s; }
+.mim-list-table tr:hover td.mim-list-actions .button { opacity: 1; }
+/* Empty state: centered, muted, generous padding. */
+.mim-list-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+/* Footer: pagination right, range text left. */
+.mim-list-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+  border-top: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
+}
+.mim-list-footer > span { margin-right: auto; } /* range text left, buttons right */
+.mim-list-footer .button { text-decoration: none; }
+
+/* Responsive: below 600px the table stacks into a card-list (per-cell labels via data-label). */
+@media (max-width: 600px) {
+  .mim-list-toolbar { flex-direction: column; align-items: stretch; }
+  .mim-list-search { flex: 1 1 auto; }
+  .mim-filter-builder, .mim-cols-form { position: static; box-shadow: none; min-width: 0; }
+  .mim-list-table thead { display: none; } /* hide header; each cell shows its own label */
+  .mim-list-table, .mim-list-table tbody, .mim-list-table tr, .mim-list-table td { display: block; }
+  .mim-list-table tbody tr {
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--mim-field-radius);
+    margin: var(--mim-view-gap) var(--mim-view-pad);
+    background: var(--surface);
+  }
+  .mim-list-table tbody td {
+    height: auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--outline-variant);
+    text-align: right;
+    min-height: var(--mim-touch);
+  }
+  .mim-list-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    text-align: left;
+  }
+  .mim-list-table td.mim-list-actions { justify-content: flex-end; border-bottom: 0; }
+  .mim-list-table td.mim-list-actions::before { content: ""; } /* no label for the actions row */
+}
