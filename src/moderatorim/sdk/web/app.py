@@ -40,6 +40,10 @@ class RouteDef:
     # For kind=FORM: which form op this route serves — "new" (GET create form), "edit" (GET edit
     # form), "create" (POST), "update" (POST), "delete" (POST). Core supplies the matching handler.
     form_op: str | None = None
+    # For kind=LIST: optional async (ctx, rows) -> None hook run AFTER the query, BEFORE render, to
+    # attach computed fields (e.g. a role's grants from a link table) that a Field.custom cell then
+    # renders. Mutates rows in place; core awaits it. Row-level escape hatch for cross-table data.
+    enrich: Any = None
 
 
 class App:
@@ -79,13 +83,19 @@ class App:
         permission: str,
         title: str | None = None,
         nav: str | None = None,
+        enrich: Any = None,
     ) -> None:
         """Register a GENERATED model-driven List page at ``path``.
 
         Unlike :meth:`page`, this takes no handler — core expands the ``model`` + ``view``
         (a :class:`~moderatorim.sdk.ListView`) into the query→store→render flow, gated by
         ``{permission}.read`` (row actions gate on ``.create``/``.update``/``.delete``). The app
-        declares intent; core owns the rendering (host-owns-the-shell seam)."""
+        declares intent; core owns the rendering (host-owns-the-shell seam).
+
+        ``enrich`` is an optional ``async (ctx, rows) -> None`` hook run after the query and before
+        render: attach computed fields to each row (e.g. a role's grants pulled from a link table)
+        that a :class:`~moderatorim.sdk.Field` with ``custom=`` then renders. The escape hatch for
+        per-row data the generic query cannot join."""
         self._routes.append(
             RouteDef(
                 path,
@@ -97,6 +107,7 @@ class App:
                 nav=nav,
                 model=model,
                 view=view,
+                enrich=enrich,
                 resource_permission=permission,
             )
         )
