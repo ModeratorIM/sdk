@@ -32,6 +32,43 @@ _DO_NOT_EDIT = (
 # The default output tree, relative to the caller's working directory.
 DEFAULT_OUTPUT = Path("generated-docs/cli/reference")
 
+# Authored worked examples, keyed by the (prefix-less) command name. argparse cannot produce these
+# — they are hand-written but VERSIONED HERE beside the parser, so the reference stays generated +
+# drift-guarded (never hand-edited in the docs repo). Each example is a realistic invocation and
+# its simulated expected output. Keep the commands and output SHAPE true to the real CLI.
+_EXAMPLES: dict[str, list[tuple[str, str]]] = {
+    "create app": [
+        (
+            'moderatorim create app billing --display-name "Billing"',
+            "Created app 'billing' at ./billing (5 files).\n"
+            "  Next: cd billing && moderatorim generate model <domain>",
+        ),
+    ],
+    "generate model": [
+        (
+            "moderatorim generate model invoices --field amount:int --field paid:bool",
+            "  created billing/invoices/model.py",
+        ),
+    ],
+    "generate service": [
+        (
+            "moderatorim generate service invoices",
+            "  created billing/invoices/service.py",
+        ),
+    ],
+}
+
+
+def _render_examples(command_title: str) -> list[str]:
+    """Render the Examples section for a command, if authored examples exist for it."""
+    examples = _EXAMPLES.get(command_title)
+    if not examples:
+        return []
+    lines = ["", "## Examples"]
+    for invocation, output in examples:
+        lines += ["", "```bash", invocation, "```", "", "```text", output, "```"]
+    return lines
+
 
 def _iter_subparsers(
     parser: argparse.ArgumentParser,
@@ -82,13 +119,23 @@ def _render_command(name: str, parser: argparse.ArgumentParser, help_text: str) 
     usage = usage[len("usage: ") :] if usage.lower().startswith("usage: ") else usage
     lines += ["## Usage", "", "```", usage, "```"]
     lines += _render_options(parser)
+    lines += _render_examples(title)
 
     subs = _iter_subparsers(parser)
-    child_names = sorted({n for sub in subs for n in sub.choices})
+    # Canonical subcommand names only — argparse lists aliases in `choices` too (e.g. `g` for
+    # `generate`), but only the canonical name has its own page, so link just those.
+    canonical: set[str] = set()
+    for sub in subs:
+        canonical.update(a.dest for a in sub._choices_actions)
+    child_names = sorted(n for sub in subs for n in sub.choices if n in canonical)
     if child_names:
         lines += ["", "## Subcommands", ""]
         for child in child_names:
-            lines.append(f"- [`{title} {child}`](./{_slug(f'{title} {child}')}.md)")
+            # The child's page slug matches _walk: the command path without the `moderatorim`
+            # prefix (e.g. top-level `moderatorim` + `create` -> `create`; `create` + `app` ->
+            # `create-app`). Link relative to this page's own directory URL.
+            child_command = f"{title} {child}".replace("moderatorim", "").strip()
+            lines.append(f"- [`{child_command}`](./{_slug(child_command)}.md)")
     lines.append("")
     return "\n".join(lines)
 
