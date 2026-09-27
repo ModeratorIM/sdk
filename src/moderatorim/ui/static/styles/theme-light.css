@@ -23,3 +23,14 @@ body.light {
 body.light article {
   background: var(--mim-surface);
 }
+
+/* List view (light): the toolbar blends into the scaffold; the search field and the table
+   header carry a soft grey so they read as distinct chrome against the white surface. */
+body.light .mim-list-toolbar {
+  background: transparent;
+}
+body.light .mim-list-search,
+body.light .mim-list-table thead th {
+  background: #ededed;
+}
+
