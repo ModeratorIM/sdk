@@ -31,7 +31,6 @@ Usage (from the SDK repo, with ``griffe2md`` installed)::
 from __future__ import annotations
 
 import importlib
-import importlib.metadata
 import pkgutil
 import shutil
 import sys
@@ -60,84 +59,67 @@ def _require_griffe2md() -> ModuleType:
     return cast("ModuleType", griffe2md)
 
 
-def _sdk_version() -> str:
-    try:
-        return importlib.metadata.version("moderatorim-sdk")
-    except importlib.metadata.PackageNotFoundError:  # pragma: no cover
-        return "unknown"
+def sdk_modules() -> list[str]:
+    """The public ``moderatorim.sdk`` submodules to document, discovered dynamically.
 
-
-def public_modules() -> list[str]:
-    """The public modules to document, module-first, in reader order.
-
-    The ``moderatorim.sdk`` public submodules are discovered dynamically (any non-underscore
-    package under it), so a new subsystem is documented automatically. ``moderatorim.ui`` is a
-    top-level peer facet documented as one page.
+    Any non-underscore package under ``moderatorim.sdk`` (bus, cachestore, datastore, models,
+    registry, validation, views, web, …), so a new subsystem is documented automatically.
     """
     sdk = importlib.import_module("moderatorim.sdk")
     subs = sorted(m.name for m in pkgutil.iter_modules(sdk.__path__) if not m.name.startswith("_"))
-    mods = [f"moderatorim.sdk.{name}" for name in subs]
-    mods.append("moderatorim.ui")
-    return mods
+    return [f"moderatorim.sdk.{name}" for name in subs]
+
+
+def ui_modules() -> list[str]:
+    """The public UI facet — documented as one ``moderatorim.ui`` page."""
+    return ["moderatorim.ui"]
+
+
+def _short_name(module: str) -> str:
+    """The reader-facing short name: the module's last path segment (e.g. 'bus', 'ui')."""
+    return module.rsplit(".", 1)[-1]
 
 
 def _slug(module: str) -> str:
-    """A filesystem-safe slug for a module, e.g. 'moderatorim.sdk.bus' -> 'bus';
-    'moderatorim.ui' -> 'moderatorim-ui'."""
-    if module.startswith("moderatorim.sdk."):
-        return module[len("moderatorim.sdk.") :].replace(".", "-")
-    return module.replace(".", "-")
+    """A filesystem-safe slug: the short module name (e.g. 'bus', 'ui')."""
+    return _short_name(module)
 
 
 def render_page(module: str) -> str:
     """Render one public module to a Markdown page (header + griffe2md body).
 
-    Uses griffe2md's object renderer so the page is sub-sectioned by kind (classes, functions,
-    attributes) within the module.
+    The page is titled by its short name (``bus``, not ``moderatorim.sdk.bus``); griffe2md
+    sub-sections the body by kind (classes, functions, attributes) within the module.
     """
     griffe2md = _require_griffe2md()
     import griffe  # noqa: PLC0415
 
     obj = griffe.load(module, submodules=True, allow_inspection=True)
     body = griffe2md.render_object_docs(obj)
-    return f"{_DO_NOT_EDIT}\n\n# `{module}`\n\n{body.strip()}\n"
+    return f"{_DO_NOT_EDIT}\n\n# `{_short_name(module)}`\n\n{body.strip()}\n"
 
 
-def render_index(modules: list[str]) -> str:
-    """Render the reference index page, recording the documented SDK version."""
-    lines = [
-        _DO_NOT_EDIT,
-        "",
-        "# SDK API reference",
-        "",
-        f"Generated from **moderatorim-sdk {_sdk_version()}**. "
-        "These pages are derived from the code — never hand-edited. "
-        "Reference is organized by module.",
-        "",
-    ]
-    for module in modules:
-        lines.append(f"- [`{module}`](./{_slug(module)}.md)")
-    lines.append("")
-    return "\n".join(lines)
+def generate(output_dir: Path | str = DEFAULT_OUTPUT, *, facet: str = "sdk") -> list[Path]:
+    """Fully (re)generate a facet's module-first reference tree under ``output_dir``.
 
-
-def generate(output_dir: Path | str = DEFAULT_OUTPUT) -> list[Path]:
-    """Fully (re)generate the module-first SDK API reference tree under ``output_dir``.
-
-    The directory is removed and rebuilt so a removed module leaves no orphan page. Returns the
-    sorted list of written paths.
+    ``facet`` selects which surface to render: ``"sdk"`` (the ``moderatorim.sdk.*`` submodules) or
+    ``"ui"`` (the ``moderatorim.ui`` facet). The directory is removed and rebuilt so a removed
+    module leaves no orphan page. No index page is written — the sidebar provides navigation.
+    Returns the sorted list of written paths.
     """
+    if facet == "sdk":
+        modules = sdk_modules()
+    elif facet == "ui":
+        modules = ui_modules()
+    else:  # pragma: no cover - guarded by the CLI
+        raise SystemExit(f"unknown facet {facet!r}; expected 'sdk' or 'ui'")
+
     out = Path(output_dir)
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True, exist_ok=True)
 
-    modules = public_modules()
     written: list[Path] = []
-    index_path = out / "index.md"
-    index_path.write_text(render_index(modules), encoding="utf-8")
-    written.append(index_path)
-
     for module in modules:
         path = out / f"{_slug(module)}.md"
         path.write_text(render_page(module), encoding="utf-8")
@@ -147,8 +129,17 @@ def generate(output_dir: Path | str = DEFAULT_OUTPUT) -> list[Path]:
 
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
-    output = Path(args[0]) if args else DEFAULT_OUTPUT
-    written = generate(output)
+    # Usage: python -m moderatorim.sdk_docsgen [OUTPUT_DIR] [--facet sdk|ui]
+    facet = "sdk"
+    positional: list[str] = []
+    it = iter(args)
+    for a in it:
+        if a == "--facet":
+            facet = next(it, "sdk")
+        else:
+            positional.append(a)
+    output = Path(positional[0]) if positional else DEFAULT_OUTPUT
+    written = generate(output, facet=facet)
     for path in written:
         print(f"  wrote {path}")
     return 0
