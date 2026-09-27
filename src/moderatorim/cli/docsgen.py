@@ -122,11 +122,20 @@ def _render_command(name: str, parser: argparse.ArgumentParser, help_text: str) 
     lines += _render_examples(title)
 
     subs = _iter_subparsers(parser)
-    child_names = sorted({n for sub in subs for n in sub.choices})
+    # Canonical subcommand names only — argparse lists aliases in `choices` too (e.g. `g` for
+    # `generate`), but only the canonical name has its own page, so link just those.
+    canonical: set[str] = set()
+    for sub in subs:
+        canonical.update(a.dest for a in sub._choices_actions)
+    child_names = sorted(n for sub in subs for n in sub.choices if n in canonical)
     if child_names:
         lines += ["", "## Subcommands", ""]
         for child in child_names:
-            lines.append(f"- [`{title} {child}`](./{_slug(f'{title} {child}')}.md)")
+            # The child's page slug matches _walk: the command path without the `moderatorim`
+            # prefix (e.g. top-level `moderatorim` + `create` -> `create`; `create` + `app` ->
+            # `create-app`). Link relative to this page's own directory URL.
+            child_command = f"{title} {child}".replace("moderatorim", "").strip()
+            lines.append(f"- [`{child_command}`](./{_slug(child_command)}.md)")
     lines.append("")
     return "\n".join(lines)
 

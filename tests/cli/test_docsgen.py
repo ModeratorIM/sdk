@@ -50,6 +50,17 @@ def test_examples_absent_when_no_authored_examples() -> None:
     assert "## Examples" not in page
 
 
+def test_subcommand_links_use_canonical_slugs_no_aliases() -> None:
+    pages = docsgen.render_pages()
+    index = pages["index"]
+    # Top-level subcommands link to their real page slugs, without the `moderatorim` prefix.
+    assert "[`create`](./create.md)" in index
+    assert "[`generate`](./generate.md)" in index
+    # The `g` alias of `generate` must NOT appear as its own subcommand link.
+    assert "](./g.md)" not in index
+    assert "moderatorim-create" not in index
+
+
 def test_removed_verb_disappears() -> None:
     """A parser without the 'generate' verb produces no generate pages (no orphans)."""
     parser = argparse.ArgumentParser(prog="moderatorim", description="test")
