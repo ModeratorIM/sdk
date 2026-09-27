@@ -655,3 +655,31 @@ main.responsive {
   content: "\2717"; /* ✗ */
   color: var(--error);
 }
+
+/* --- Model-driven Calendar (S4) month grid --------------------------------- */
+.mim-calendar { display: flex; flex-direction: column; gap: 0.75rem; }
+.mim-cal-nav { display: flex; gap: 0.5rem; align-items: center; }
+.mim-cal-nav a { text-decoration: none; padding: 0.25rem 0.6rem; border-radius: 0.5rem; }
+.mim-cal-nav a:hover { background: var(--surface-variant); }
+.mim-cal-title { margin: 0; }
+.mim-cal-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.mim-cal-grid th.mim-cal-wh {
+  text-align: left; padding: 0.4rem 0.5rem; font-weight: 600; color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.mim-cal-grid td.mim-cal-day, .mim-cal-grid td.mim-cal-empty {
+  vertical-align: top; height: 5.5rem; padding: 0.3rem; border: 1px solid var(--outline-variant);
+}
+.mim-cal-empty { background: var(--surface-variant); }
+.mim-cal-dayhdr { display: flex; justify-content: space-between; align-items: center; }
+.mim-cal-daynum { font-weight: 600; color: var(--on-surface-variant); }
+.mim-cal-add { text-decoration: none; opacity: 0; transition: opacity 0.1s; padding: 0 0.25rem; }
+.mim-cal-day:hover .mim-cal-add { opacity: 0.7; }
+.mim-cal-add:hover { opacity: 1; }
+.mim-cal-events { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem; }
+.mim-cal-event {
+  display: block; font-size: 0.8rem; padding: 0.1rem 0.35rem; border-radius: 0.35rem;
+  background: var(--primary); color: var(--on-primary); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mim-cal-event:hover { filter: brightness(1.1); }
