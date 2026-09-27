@@ -771,6 +771,15 @@ main.responsive {
   top: 0;
   z-index: 10;
 }
+/* ListAction bar: list-level actions (New / bulk), right-aligned, above the toolbar. */
+.mim-list-actionbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+}
 /* Search: a pill field that grows to fill the left of the toolbar. (Final polish deferred.) */
 .mim-list-search {
   flex: 1 1 12rem;
