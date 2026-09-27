@@ -442,7 +442,6 @@ main.responsive {
   width: 100%;
   max-width: 480px;
   background: transparent !important;
-  box-shadow: none !important;
 }
 /* Night-mode toggle, pinned to the top-right corner (independent of any app bar). */
 .mim-auth-toggle {
@@ -502,6 +501,7 @@ main.responsive {
 .mim-auth-method-button {
   width: 300px;
   justify-content: center;
+  border-radius: 0.25rem;
 }
 /* The card, HIDDEN until a method is selected (no radio checked → just the buttons show). Shown
    when the button list has a checked radio. */
