@@ -29,6 +29,7 @@ MODULE_SCRIPTS: tuple[str, ...] = (
     "scripts/material-dynamic-colors.min.js",
     "scripts/theme-toggle.js",
     "scripts/nav-collapse.js",
+    "scripts/form-tabs.js",
 )
 
 # Classic (non-module) scripts.
