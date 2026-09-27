@@ -44,6 +44,9 @@ class RouteDef:
     # attach computed fields (e.g. a role's grants from a link table) that a Field.custom cell then
     # renders. Mutates rows in place; core awaits it. Row-level escape hatch for cross-table data.
     enrich: Any = None
+    # Per-binding ROLE gate (design §1b layer 2): when set, the route is gated by ctx.has_role(any
+    # of these) instead of a permission prefix. Populated by App.mount() from a ViewRoute.roles.
+    roles: tuple[str, ...] = ()
 
 
 class App:
@@ -211,6 +214,70 @@ class App:
     @staticmethod
     async def _unset_calendar_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
         raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
+
+    def mount(
+        self, routes: tuple[Any, ...], *, permission: str | None = None, enrich: Any = None
+    ) -> None:
+        """Register a declarative ``routes.py`` table of :class:`ViewRoute` bindings (design §1).
+
+        Each ``ViewRoute(path, view=PageView, roles=…)`` is expanded into the same generated routes
+        as the imperative facades — core resolves the KIND from the PageView's ``view`` type and the
+        path shape: a :class:`ListView` PageView at ``/x`` → a List; a :class:`FormView` PageView at
+        ``/x/new`` + ``/x/{id}`` → one Form (deduped by base path); a :class:`CalendarView`
+        PageView → a Calendar. The binding's ``roles=`` is the route ACCESS GATE (§1b layer 2):
+        core enforces ``ctx.has_role(any)`` at the route, independent of the table-ACL data floor.
+
+        ``permission`` is the resource permission PREFIX used only for the table-ACL / row-action
+        layer (``.create/.update/.delete`` visibility); it defaults to the path turned into a prefix
+        (``/admin/users`` → ``admin.users``). The route GATE is ``roles=``, not this prefix — the
+        design's separation of route access (roles) from the data floor (table ACL).
+
+        ``enrich`` is an optional ``async (ctx, rows) -> None`` hook applied to every LIST binding
+        mounted here (see :meth:`list_view`), for per-row computed cells that join other tables.
+        """
+        from moderatorim.sdk.views import CalendarView, FormView, ListView
+
+        seen_form_base: set[str] = set()
+        for r in routes:
+            pv = r.view  # a PageView
+            inner = pv.view
+            perm = permission or self._path_to_permission(r.path)
+            if isinstance(inner, ListView):
+                start = len(self._routes)
+                self.list_view(r.path, model=pv.model, view=inner, permission=perm, enrich=enrich)
+                self._stamp_roles(start, r.roles)
+            elif isinstance(inner, FormView):
+                base = self._form_base_path(r.path)
+                if base in seen_form_base:
+                    continue  # the sibling binding (/new vs /{id}) already expanded the form set
+                seen_form_base.add(base)
+                start = len(self._routes)
+                self.form_view(base, model=pv.model, view=inner, permission=perm)
+                self._stamp_roles(start, r.roles)
+            elif isinstance(inner, CalendarView):
+                start = len(self._routes)
+                self.calendar_view(r.path, model=pv.model, view=inner, permission=perm)
+                self._stamp_roles(start, r.roles)
+            else:  # pragma: no cover - guarded by PageView, but fail loud on a new view type
+                raise TypeError(f"ViewRoute at {r.path!r} has an unsupported view {type(inner)!r}")
+
+    def _stamp_roles(self, start_index: int, roles: tuple[str, ...]) -> None:
+        """Set roles= on every RouteDef appended since ``start_index`` (the just-mounted view)."""
+        for rd in self._routes[start_index:]:
+            rd.roles = tuple(roles)
+
+    @staticmethod
+    def _form_base_path(path: str) -> str:
+        for suffix in ("/{id}/delete", "/{id}", "/new"):
+            if path.endswith(suffix):
+                return path[: -len(suffix)]
+        return path
+
+    @staticmethod
+    def _path_to_permission(path: str) -> str:
+        # "/admin/users" -> "admin.users"; the form base is used for /x/new and /x/{id}.
+        base = App._form_base_path(path).strip("/")
+        return base.replace("/", ".") if base else "app"
 
     def action(
         self, path: str, *, methods: tuple[str, ...] = ("POST",), permission: str | None = None
