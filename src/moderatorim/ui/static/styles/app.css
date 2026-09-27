@@ -679,8 +679,18 @@ main.responsive {
   color: var(--error);
 }
 
-/* --- Model-driven Calendar (S4) month grid --------------------------------- */
-.mim-calendar { display: flex; flex-direction: column; gap: 0.75rem; }
+/* --- Model-driven Calendar (S4 + ui-view-design Stage 3) month grid -------- */
+/* Surface card wrapper (matches List/Form), a Material month grid, today accent + responsive. */
+.mim-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: var(--mim-view-pad);
+  background: var(--surface);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-view-radius);
+}
 .mim-cal-nav { display: flex; gap: 0.5rem; align-items: center; }
 .mim-cal-nav a { text-decoration: none; padding: 0.25rem 0.6rem; border-radius: 0.5rem; }
 .mim-cal-nav a:hover { background: var(--surface-variant); }
@@ -696,6 +706,12 @@ main.responsive {
 .mim-cal-empty { background: var(--surface-variant); }
 .mim-cal-dayhdr { display: flex; justify-content: space-between; align-items: center; }
 .mim-cal-daynum { font-weight: 600; color: var(--on-surface-variant); }
+/* Today: a filled primary circle on the day number (Material "today" convention). */
+.mim-cal-today .mim-cal-daynum {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--primary); color: var(--on-primary);
+}
 .mim-cal-add { text-decoration: none; opacity: 0; transition: opacity 0.1s; padding: 0 0.25rem; }
 .mim-cal-day:hover .mim-cal-add { opacity: 0.7; }
 .mim-cal-add:hover { opacity: 1; }
@@ -706,6 +722,16 @@ main.responsive {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mim-cal-event:hover { filter: brightness(1.1); }
+/* Responsive: keep 7 columns (a month is 7 wide) but compress cells on phones. */
+@media (max-width: 600px) {
+  .mim-calendar { padding: 0.5rem; }
+  .mim-cal-grid td.mim-cal-day, .mim-cal-grid td.mim-cal-empty { height: 3.5rem; padding: 0.15rem; }
+  .mim-cal-grid th.mim-cal-wh { padding: 0.25rem; font-size: 0.75rem; }
+  .mim-cal-daynum { font-size: 0.8rem; }
+  /* Collapse events to a count dot: hide the chips, show "•N" via the container. */
+  .mim-cal-event { font-size: 0; padding: 0; height: 0.4rem; width: 0.4rem; border-radius: 50%; display: inline-block; margin: 0.08rem; }
+  .mim-cal-events { flex-direction: row; flex-wrap: wrap; }
+}
 
 /* --- Model-driven List columns editor (S5, design §3a) --------------------- */
 .mim-cols-editor { display: inline-block; position: relative; }
