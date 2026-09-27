@@ -323,3 +323,34 @@ class RouteAction:
             raise ValueError("RouteAction.path must be non-empty")
         if self.handler is None:
             raise ValueError("RouteAction.handler is required")
+
+
+@dataclass(frozen=True, slots=True)
+class PageRoute:
+    """A ``routes.py`` entry declaring a CUSTOM GET page (design §7.4) — a ``path`` served by a
+    hand-written ``handler`` returning a :class:`~moderatorim.sdk.Page`, NOT a generated view.
+
+    Named ``PageRoute`` for parity with :class:`ViewRoute`/:class:`RouteAction`. It is the
+    declarative form of ``@app.page``: put these in an app's ``routes.py`` (or ``pages.py``) as a
+    tuple and hand them to ``App.mount(pages=…)`` so ``routes.py`` is uniformly tuples of
+    declaration objects with no decorators. The escape hatch for a screen the view generator
+    cannot express (a static dashboard, a bespoke authz form) — everything a model-driven screen
+    can express should stay a :class:`ViewRoute`.
+
+    Gating: ``roles`` (route role gate, §1b L2) when set, else ``permission`` (a full permission
+    key checked at the route). ``title`` sets the page title; ``nav`` (when set) contributes a nav
+    entry shown only when the gate passes — same as the ``@app.page`` keywords.
+    """
+
+    path: str
+    handler: object  # an async (ctx) -> Page, like an @app.page body
+    title: str | None = None
+    permission: str | None = None
+    roles: tuple[str, ...] = ()
+    nav: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.path:
+            raise ValueError("PageRoute.path must be non-empty")
+        if self.handler is None:
+            raise ValueError("PageRoute.handler is required")

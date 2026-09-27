@@ -236,3 +236,28 @@ def test_route_action_and_mount_actions() -> None:
     app2 = App()
     app2.mount((), actions=(RouteAction(path="/x", handler=define_role, roles=("r1",)),))
     assert app2.routes[0].roles == ("r1",)
+
+
+def test_page_route_and_mount_pages() -> None:
+    from moderatorim.sdk import App, Kind, PageRoute
+
+    async def home(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    pr = PageRoute(path="/admin", handler=home, title="Admin", permission="admin.users.read")
+    assert pr.title == "Admin" and pr.permission == "admin.users.read" and pr.nav is None
+    with pytest.raises(ValueError, match="path"):
+        PageRoute(path="", handler=home)
+    with pytest.raises(ValueError, match="handler"):
+        PageRoute(path="/x", handler=None)
+
+    app = App()
+    app.mount((), pages=(pr,))
+    rd = next(r for r in app.routes if r.path == "/admin")
+    assert rd.kind is Kind.PAGE and rd.methods == ("GET",)
+    assert rd.handler is home and rd.title == "Admin" and rd.permission == "admin.users.read"
+
+    # a role-gated PageRoute carries its roles= onto the RouteDef, and nav= flows through
+    app2 = App()
+    app2.mount((), pages=(PageRoute(path="/x", handler=home, roles=("r1",), nav="X"),))
+    assert app2.routes[0].roles == ("r1",) and app2.routes[0].nav == "X"
