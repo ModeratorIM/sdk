@@ -27,6 +27,13 @@ def test_listview_sort_validation() -> None:
         ListView(sort=("name", "sideways"))  # type: ignore[arg-type]
 
 
+def test_listview_filters_optional_restriction() -> None:
+    # empty (default) = all filterable columns pickable at runtime
+    assert ListView().filters == ()
+    # provided = restrict the picker to these columns
+    assert ListView(filters=("active", "status")).filters == ("active", "status")
+
+
 def test_pageview_requires_model_and_view() -> None:
     lv = ListView(fields=(Field("email"),))
     pv = PageView(model=object(), view=lv)

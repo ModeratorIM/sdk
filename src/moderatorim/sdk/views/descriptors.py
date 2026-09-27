@@ -51,7 +51,12 @@ class ListView:
     * ``fields`` — the columns to show, ordered by each :class:`Field`'s ``order``.
     * ``search`` — column names the free-text search box matches (OR, case-insensitive). Empty = no
       search box.
-    * ``filters`` — column names offered as faceted filters (ENUM/BOOL/REF).
+    * ``filters`` — an OPTIONAL RESTRICTION on the runtime filter builder. The List view offers an
+      "add filter" builder over the model's own columns; the operators for each come from the
+      column's ``FieldType`` (core owns the type→operator mapping). Leave ``filters`` EMPTY to make
+      every filterable column pickable (the default); provide a tuple to LIMIT the picker to those
+      columns (e.g. hide sensitive columns from filtering). Non-filterable types (JSON/LIST/LISTREF)
+      are auto-excluded regardless.
     * ``sort`` — the initial ``(column, "asc"|"desc")`` order, or None for the store default.
     """
 
