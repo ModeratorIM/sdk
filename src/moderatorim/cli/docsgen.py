@@ -44,7 +44,7 @@ def _visible_options(parser: argparse.ArgumentParser) -> list[argparse.Action]:
     """Actions worth documenting: skip the auto ``-h/--help`` and the subparser dispatch action."""
     out: list[argparse.Action] = []
     for action in parser._actions:
-        if isinstance(action, (argparse._HelpAction, argparse._SubParsersAction)):
+        if isinstance(action, argparse._HelpAction | argparse._SubParsersAction):
             continue
         out.append(action)
     return out
