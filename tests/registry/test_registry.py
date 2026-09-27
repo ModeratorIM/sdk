@@ -43,3 +43,17 @@ def test_manifest_system_users_default_empty_and_carries_declaration() -> None:
         system_users=declared,
     )
     assert m2.system_users == declared
+
+
+def test_manifest_service_roles_default_empty_and_carries_declaration() -> None:
+    # default: no service roles
+    m = Manifest(name="widget", type=UnitType.APP, register=lambda c: None)
+    assert m.service_roles == ()
+    # carries the declared tuple verbatim (SDK records; core validates + seeds it)
+    m2 = Manifest(
+        name="moderation",
+        type=UnitType.APP,
+        register=lambda c: None,
+        service_roles=("moderation.reviewer",),
+    )
+    assert m2.service_roles == ("moderation.reviewer",)

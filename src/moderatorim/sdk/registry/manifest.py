@@ -123,6 +123,12 @@ class Manifest:
     # Roles this unit declares (seeded into the core RBAC catalog at boot): {role_name: (grants,)}.
     # Renamed from `default_roles` — the seeding-default semantics live in the docs, not the field.
     roles: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # Roles this unit's OWN service principal ("app:<name>") holds, for table-ACL (table-acl P3).
+    # A unit's userless work (event handlers, cron, boot hooks) runs as the "app:<name>" principal;
+    # these are the roles that principal is granted at boot (into core_role_granted), so it can
+    # reach its own role-gated tables out of the box. Each MUST be a declared role (its own or a
+    # dependency's); core validates + seeds them (apps declare, core decides).
+    service_roles: tuple[str, ...] = ()
     # System users this unit ships: each maps a system-user NAME ("{app}.{user_name}",
     # e.g. "cron.user") to the group names it belongs to. Boot/install seeds each as a
     # type="system", un-loginable core_user and places it in those groups, so the unit's userless
