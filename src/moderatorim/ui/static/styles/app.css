@@ -441,7 +441,14 @@ main.responsive {
 .mim-auth-card {
   width: 100%;
   max-width: 480px;
-  background: transparent !important;
+}
+/* The method-button container: its own card, but chrome-less (no surface/shadow), same width as
+   the form card. So on load the buttons sit on the page background, not on a card surface. */
+.mim-auth-method-card {
+  width: 100%;
+  max-width: 480px;
+  background: transparent;
+  box-shadow: none;
 }
 /* Night-mode toggle, pinned to the top-right corner (independent of any app bar). */
 .mim-auth-toggle {
