@@ -10,7 +10,9 @@ Stage 1 ships :class:`Field` + :class:`ListView`; Form/Calendar descriptors arri
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from moderatorim.sdk.models.field import TableColumn
 
@@ -30,6 +32,12 @@ class Field:
     * ``display_field`` — for a REF column, the target column to show as its label; defaults to the
       target's ``display=True`` column (convention).
     * ``help`` — helper/placeholder text; falls back to the column's own label.
+    * ``custom`` — ESCAPE HATCH (design §7.3): a ``(record) -> cell content`` callback that renders
+      a computed / non-field List cell (a status badge, a derived value, an action button like
+      admin's super-user toggle). RETURN A UI PRIMITIVE (``tag(...)`` / ``Raw(...)``) — a plain
+      string is escaped as safe text (XSS-safe default), so HTML must be a ``Raw``/tag. When set,
+      ``name`` is a synthetic COLUMN KEY + header label, no backing model column is required, and
+      the cell is neither sortable nor filterable. List-only.
     """
 
     name: str
@@ -38,12 +46,18 @@ class Field:
     span: int = 1
     display_field: str = ""
     help: str = ""
+    custom: Callable[[dict[str, Any]], Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("Field.name must be a non-empty column name")
         if self.span < 1:
             raise ValueError("Field.span must be >= 1")
+
+    @property
+    def is_custom(self) -> bool:
+        """True when this field renders via a ``custom`` callback (no backing model column)."""
+        return self.custom is not None
 
 
 @dataclass(frozen=True, slots=True)
