@@ -152,3 +152,10 @@ def test_field_custom_cell_escape_hatch() -> None:
     r = app.routes[0]
     assert r.kind is Kind.CALENDAR and r.methods == ("GET",)
     assert r.permission == "cal.events.read" and r.resource_permission == "cal.events"
+
+
+def test_list_view_row_actions_default_and_off() -> None:
+    from moderatorim.sdk import ListView
+
+    assert ListView().row_actions is True  # default shows Edit/Delete/New
+    assert ListView(row_actions=False).row_actions is False  # read-only list opts out
