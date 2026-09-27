@@ -34,8 +34,10 @@ class Field:
     * ``help`` — helper/placeholder text; falls back to the column's own label.
     * ``custom`` — ESCAPE HATCH (design §7.3): a ``(record) -> cell content`` callback that renders
       a computed / non-field List cell (a status badge, a derived value, an action button like
-      admin's super-user toggle). When set, ``name`` is a synthetic COLUMN KEY + header label, no
-      backing model column is required, and the cell is neither sortable nor filterable. List-only.
+      admin's super-user toggle). RETURN A UI PRIMITIVE (``tag(...)`` / ``Raw(...)``) — a plain
+      string is escaped as safe text (XSS-safe default), so HTML must be a ``Raw``/tag. When set,
+      ``name`` is a synthetic COLUMN KEY + header label, no backing model column is required, and
+      the cell is neither sortable nor filterable. List-only.
     """
 
     name: str
