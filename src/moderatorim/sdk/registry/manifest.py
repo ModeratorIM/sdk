@@ -156,13 +156,14 @@ class Manifest:
     # principal. Core validates the "{app}" ownership prefix and seeds them (apps declare, core
     # decides) — the SDK only carries the declaration.
     system_users: dict[str, tuple[str, ...]] = field(default_factory=dict)
-    # When True, this unit is PRIVATE: an authenticated caller who lacks a route's required
-    # permission gets a 404 (Not Found) on a GET page instead of a 403 (Forbidden), so the unit's
-    # existence is CONCEALED — a logged-in low-privilege user cannot enumerate its pages (the
-    # GitHub/GitLab private-resource convention). Applies only to authenticated-but-unauthorized
-    # GET navigations; an UNAUTHENTICATED caller is still redirected to /signin, and an unauthorized
-    # MUTATION (POST/PATCH/DELETE) is still 403 (not a navigation, not enumerable by browsing).
-    # Default False = ordinary 403. Set True for a control-center app like admin.
+    # When True, this unit is PRIVATE: ANY unauthorized access to one of its routes — whether the
+    # caller is UNAUTHENTICATED or authenticated-WITHOUT the required permission, and whether a GET
+    # page or a mutation — returns 404 (Not Found), so the unit's existence is fully CONCEALED.
+    # Neither an anonymous scanner nor a logged-in low-privilege user can tell the route exists (the
+    # GitHub/GitLab private-resource convention). There is NO /signin redirect from a private unit's
+    # URL — login happens at `/` (root), not at a unit's own page, so redirecting would only leak
+    # the endpoint. Default False = the ordinary gate (unauthenticated GET -> /signin, otherwise
+    # 403). Set True for a control-center or sensitive app (e.g. admin, private messaging).
     private: bool = False
     # The optional route-recording hook. Historically imperative: ``routes(app) -> None`` mutates
     # the passed SDK App (``app.mount(...)`` / the ``@app.page``/``@app.action``/``@app.post``
