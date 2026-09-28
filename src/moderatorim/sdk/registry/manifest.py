@@ -12,9 +12,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from moderatorim.sdk.models import Extends, TableModel
+
+if TYPE_CHECKING:  # pragma: no cover - typing only (avoid a runtime import cycle)
+    from moderatorim.sdk.views import PageRoute
 
 
 def _no_register(_core: Any) -> None:
@@ -100,7 +103,12 @@ class Manifest:
 
     name: str
     type: UnitType
-    register: Callable[[Any], None] = _no_register
+    # The one-time boot hook. Historically ``register(core) -> None`` (imperative: wires services /
+    # mounts routes on the passed handle). The declarative-routes migration widens this so a unit's
+    # ``register()`` may instead RETURN its route bundle(s) — a ``PageRoute`` (the domain bundle) or
+    # a tuple of them — which core COLLECTS and expands (design §2). Both call shapes coexist behind
+    # the boot compatibility shim during the migration, so the annotation admits either.
+    register: Callable[..., PageRoute | tuple[PageRoute, ...] | None] = _no_register
     version: str = "0.0.0"
     display_name: str = ""
     dependency: tuple[str, ...] = ()
@@ -146,7 +154,14 @@ class Manifest:
     # principal. Core validates the "{app}" ownership prefix and seeds them (apps declare, core
     # decides) — the SDK only carries the declaration.
     system_users: dict[str, tuple[str, ...]] = field(default_factory=dict)
-    routes: Callable[[Any], None] | None = None
+    # The optional route-recording hook. Historically imperative: ``routes(app) -> None`` mutates
+    # the passed SDK App (``app.mount(...)`` / the ``@app.page``/``@app.action``/``@app.post``
+    # decorators). The declarative-routes migration (design §2c, Option A) widens it so a unit's
+    # ``routes`` may instead be a zero-arg ``routes() -> PageRoute | tuple[PageRoute, ...]`` that
+    # RETURNS the domain's route bundle(s); core detects the form by arity and collects a returned
+    # bundle onto the core App via ``collect_bundle``. Both call shapes coexist during the
+    # migration (apps stay imperative until Stage 3), so the annotation admits either.
+    routes: Callable[..., PageRoute | tuple[PageRoute, ...] | None] | None = None
 
     def __post_init__(self) -> None:
         if not self.name:

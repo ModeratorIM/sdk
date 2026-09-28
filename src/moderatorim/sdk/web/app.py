@@ -44,9 +44,11 @@ class RouteDef:
     # attach computed fields (e.g. a role's grants from a link table) that a Field.custom cell then
     # renders. Mutates rows in place; core awaits it. Row-level escape hatch for cross-table data.
     enrich: Any = None
-    # Per-binding ROLE gate (design §1b layer 2): when set, the route is gated by ctx.has_role(any
-    # of these) instead of a permission prefix. Populated by App.mount() from a ViewRoute.roles.
-    roles: tuple[str, ...] = ()
+    # SINGLE permission gate (declarative-routes, design §1): the ONE full permission key this route
+    # REQUIRES; the caller's resolved permission set must contain it (None = ungated). To ACCESS a
+    # record you need `.read`; each mutating route names its own capability (`.create`/`.update`/
+    # `.delete`). No method→verb inference. Populated by the imperative decorators, the model-driven
+    # view expansion, and the declarative Route/ViewRoute expansion alike.
 
 
 class App:
@@ -126,11 +128,13 @@ class App:
     ) -> None:
         """Register a GENERATED model-driven Form (new + edit + create/update/delete).
 
-        Expands into the route set (design §1): GET ``{base}/new`` (create form), GET
-        ``{base}/{id}`` (edit form), POST ``{base}/new`` (create), POST ``{base}/{id}`` (update),
-        POST ``{base}/{id}/delete``. Each is gated by the matching CRUD permission
+        Expands into the RESTful route set (design §1): GET ``{base}/new`` (blank create form), GET
+        ``{base}/{id}`` (edit form), POST ``{base}`` (create on the collection), PATCH
+        ``{base}/{id}`` (update), DELETE ``{base}/{id}`` (delete — the method carries the op, no
+        ``/delete`` path suffix). Each gates on its own single CRUD permission
         (``{permission}.create/.read/.update/.delete``). No handler — core supplies each per
-        ``form_op`` (host-owns-rendering seam)."""
+        ``form_op`` (host-owns-rendering seam); the edit/delete controls issue PATCH/DELETE via
+        htmx."""
 
         def _fd(path: str, methods: tuple[str, ...], op: str, perm: str) -> RouteDef:
             return RouteDef(
@@ -150,9 +154,9 @@ class App:
             [
                 _fd(f"{base_path}/new", ("GET",), "new", f"{permission}.create"),
                 _fd(f"{base_path}/{{id}}", ("GET",), "edit", f"{permission}.read"),
-                _fd(f"{base_path}/new", ("POST",), "create", f"{permission}.create"),
-                _fd(f"{base_path}/{{id}}", ("POST",), "update", f"{permission}.update"),
-                _fd(f"{base_path}/{{id}}/delete", ("POST",), "delete", f"{permission}.delete"),
+                _fd(base_path, ("POST",), "create", f"{permission}.create"),
+                _fd(f"{base_path}/{{id}}", ("PATCH",), "update", f"{permission}.update"),
+                _fd(f"{base_path}/{{id}}", ("DELETE",), "delete", f"{permission}.delete"),
             ]
         )
         # One ACTION route per declared FormAction, at {base}/{id}/action/{idx}, routed to the
@@ -215,6 +219,69 @@ class App:
     async def _unset_calendar_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
         raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
 
+    def expand_route(self, r: Any, *, default_permission: str | None = None) -> None:
+        """Collect ONE declarative :class:`~moderatorim.sdk.Route` (declarative-routes design §2).
+
+        The declarative twin of the ``@app.page`` / ``@app.action`` / ``@app.post`` decorators:
+        ``r.method`` selects the binding — ``RouteMethod.GET`` → a ``Kind.PAGE`` route (``title`` /
+        ``nav`` apply, GET only); ``POST`` / ``PATCH`` / ``DELETE`` → a ``Kind.ACTION`` route (a
+        mutation). The gate is the single ``r.permission`` (a full key); ``default_permission`` is
+        the bundle's resource prefix, carried for documentation/grouping only (NOT a gate — a route
+        without ``permission`` is public)."""
+        method = str(getattr(r, "method", "GET"))
+        perm = getattr(r, "permission", None)
+        if method == "GET":
+            self._routes.append(
+                RouteDef(
+                    r.path,
+                    ("GET",),
+                    handler=r.handler,
+                    kind=Kind.PAGE,
+                    title=getattr(r, "title", None),
+                    nav=getattr(r, "nav", None),
+                    permission=perm,
+                )
+            )
+        else:
+            self._routes.append(
+                RouteDef(
+                    r.path,
+                    (method,),
+                    handler=r.handler,
+                    kind=Kind.ACTION,
+                    permission=perm,
+                )
+            )
+
+    def expand_view_route(
+        self, vr: Any, *, permission: str | None = None, enrich: Any = None
+    ) -> None:
+        """Collect ONE declarative :class:`~moderatorim.sdk.ViewRoute` (declarative-routes §2).
+
+        The declarative twin of :meth:`mount` for a single generated binding: core resolves the
+        KIND from the PageView's ``view`` type (ListView → List, FormView → Form set, CalendarView →
+        Calendar) and the path shape; each expanded op gets its own single permission from the
+        prefix. ``permission`` is the bundle's resource prefix used for the row-action / table-ACL
+        layer (defaults from the path);
+        ``enrich`` is applied to a List binding (per-row computed cells)."""
+        self.mount(
+            (vr,),
+            permission=permission or self._path_to_permission(vr.path),
+            enrich=enrich,
+        )
+
+    def collect_bundle(self, bundle: Any) -> None:
+        """Collect one :class:`~moderatorim.sdk.PageRoute` BUNDLE (declarative-routes §2): expand
+        all ``views`` in ONE :meth:`mount` pass (so a Form declared by its sibling ``/new`` +
+        ``/{id}`` ViewRoutes is deduped by base path — expanding each view in isolation would
+        register the form set twice), and each ``routes`` entry via :meth:`expand_route`, threading
+        the bundle's ``permission`` prefix + ``enrich`` hook."""
+        views = tuple(getattr(bundle, "views", ()))
+        if views:
+            self.mount(views, permission=bundle.permission, enrich=bundle.enrich)
+        for r in getattr(bundle, "routes", ()):
+            self.expand_route(r, default_permission=bundle.permission)
+
     def mount(
         self,
         routes: tuple[Any, ...],
@@ -233,23 +300,23 @@ class App:
         PageView → a Calendar. The binding's ``roles=`` is the route ACCESS GATE (§1b layer 2):
         core enforces ``ctx.has_role(any)`` at the route, independent of the table-ACL data floor.
 
-        ``permission`` is the resource permission PREFIX used only for the table-ACL / row-action
-        layer (``.create/.update/.delete`` visibility); it defaults to the path turned into a prefix
-        (``/admin/users`` → ``admin.users``). The route GATE is ``roles=``, not this prefix — the
-        design's separation of route access (roles) from the data floor (table ACL).
+        ``permission`` is the resource permission PREFIX the expansion derives each op's single gate
+        from (``.read``/``.create``/``.update``/``.delete``); it defaults to the path turned into a
+        prefix (``/admin/users`` → ``admin.users``). A ViewRoute's own ``permission`` (rare)
+        OVERRIDES the list op's gate.
 
         ``enrich`` is an optional ``async (ctx, rows) -> None`` hook applied to every LIST binding
         mounted here (see :meth:`list_view`), for per-row computed cells that join other tables.
 
         ``actions`` is a tuple of :class:`RouteAction` — standalone route-actions (the declarative
-        form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by its ``roles=``
-        (else its ``permission``, else the resource prefix). Keep these in the app's ``actions.py``.
+        form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by its single
+        ``permission``. Keep these in the app's ``actions.py``.
 
-        ``pages`` is a tuple of :class:`PageRoute` — custom GET pages (the declarative form of
-        ``@app.page``), each expanded into a ``Kind.PAGE`` route served by its ``handler``, gated by
-        its ``roles=`` (else its ``permission``). This lets ``routes.py`` be uniformly tuples of
-        declaration objects with no decorators — the escape-hatch page for a screen the view
-        generator cannot express.
+        ``pages`` is a tuple of :class:`Route` (GET) or the legacy :class:`LegacyPageRoute` — custom
+        pages (the declarative form of ``@app.page``), each expanded into a ``Kind.PAGE`` route
+        served by its ``handler``, gated on its single ``permission``. This lets ``routes.py`` be
+        uniformly tuples of declaration objects with no decorators — the escape-hatch page for a
+        screen the view generator cannot express.
         """
         from moderatorim.sdk.views import CalendarView, FormView, ListView
 
@@ -258,28 +325,26 @@ class App:
             pv = r.view  # a PageView
             inner = pv.view
             perm = permission or self._path_to_permission(r.path)
+            override = getattr(r, "permission", None)
             if isinstance(inner, ListView):
                 start = len(self._routes)
                 self.list_view(r.path, model=pv.model, view=inner, permission=perm, enrich=enrich)
-                self._stamp_roles(start, r.roles)
+                if override:  # override the list op's own gate only
+                    for rd in self._routes[start:]:
+                        rd.permission = override
             elif isinstance(inner, FormView):
                 base = self._form_base_path(r.path)
                 if base in seen_form_base:
                     continue  # the sibling binding (/new vs /{id}) already expanded the form set
                 seen_form_base.add(base)
-                start = len(self._routes)
                 self.form_view(base, model=pv.model, view=inner, permission=perm)
-                self._stamp_roles(start, r.roles)
             elif isinstance(inner, CalendarView):
-                start = len(self._routes)
                 self.calendar_view(r.path, model=pv.model, view=inner, permission=perm)
-                self._stamp_roles(start, r.roles)
             else:  # pragma: no cover - guarded by PageView, but fail loud on a new view type
                 raise TypeError(f"ViewRoute at {r.path!r} has an unsupported view {type(inner)!r}")
 
         # Standalone route-actions (design §1): each RouteAction -> a Kind.ACTION RouteDef, gated by
-        # its roles= (route role gate) when set, else its permission (falling back to the resource
-        # prefix). The declarative form of @app.action.
+        # its single permission. The declarative form of @app.action.
         for a in actions:
             self._routes.append(
                 RouteDef(
@@ -287,14 +352,12 @@ class App:
                     a.methods,
                     handler=a.handler,
                     kind=Kind.ACTION,
-                    permission=a.permission or (permission or self._path_to_permission(a.path)),
-                    roles=tuple(a.roles),
+                    permission=getattr(a, "permission", None),
                 )
             )
 
-        # Custom GET pages (design §7.4): each PageRoute -> a Kind.PAGE RouteDef served by its
-        # handler, gated by its roles= when set, else its permission. The declarative form of
-        # @app.page — the escape hatch for a screen the view generator cannot express.
+        # Custom pages (design §7.4): each Route/LegacyPageRoute -> a Kind.PAGE RouteDef served by
+        # its handler, gated on its single permission.
         for p in pages:
             self._routes.append(
                 RouteDef(
@@ -303,20 +366,14 @@ class App:
                     handler=p.handler,
                     kind=Kind.PAGE,
                     title=p.title,
-                    permission=p.permission,
+                    permission=getattr(p, "permission", None),
                     nav=p.nav,
-                    roles=tuple(p.roles),
                 )
             )
 
-    def _stamp_roles(self, start_index: int, roles: tuple[str, ...]) -> None:
-        """Set roles= on every RouteDef appended since ``start_index`` (the just-mounted view)."""
-        for rd in self._routes[start_index:]:
-            rd.roles = tuple(roles)
-
     @staticmethod
     def _form_base_path(path: str) -> str:
-        for suffix in ("/{id}/delete", "/{id}", "/new"):
+        for suffix in ("/{id}", "/new"):
             if path.endswith(suffix):
                 return path[: -len(suffix)]
         return path
@@ -354,6 +411,17 @@ class App:
     def nav_routes(self) -> list[RouteDef]:
         """Routes that declared ``nav=`` — shown only when their permission check passes."""
         return [rd for rd in self._routes if rd.nav is not None]
+
+
+def as_bundle_tuple(bundles: Any) -> tuple[Any, ...]:
+    """Normalize a domain/app ``register()`` return into a tuple of :class:`PageRoute` bundles
+    (declarative-routes §2): accept a single ``PageRoute`` bundle, a tuple/list of them, or ``None``
+    (a still-imperative ``register(app)`` that mutated the app and returned nothing → ``()``)."""
+    if bundles is None:
+        return ()
+    if isinstance(bundles, list | tuple):
+        return tuple(bundles)
+    return (bundles,)
 
 
 def _unset_list_handler(ctx: Any) -> Any:  # pragma: no cover - core replaces this at build time
