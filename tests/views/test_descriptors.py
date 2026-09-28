@@ -64,9 +64,9 @@ def test_pageview_requires_model_and_view() -> None:
 
 def test_viewroute_binds_path_view_permissions() -> None:
     pv = PageView(model=object(), view=ListView())
-    r = ViewRoute(path="/users", view=pv, permissions=("admin.users.read",))
-    assert r.path == "/users" and r.permissions == ("admin.users.read",) and r.view is pv
-    assert ViewRoute(path="/x", view=pv).permissions == ()  # empty = public
+    r = ViewRoute(path="/users", view=pv, permission="admin.users.read")
+    assert r.path == "/users" and r.permission == "admin.users.read" and r.view is pv
+    assert ViewRoute(path="/x", view=pv).permission is None  # None = expansion supplies per-op keys
     with pytest.raises(ValueError, match="path"):
         ViewRoute(path="", view=pv)
 
@@ -192,26 +192,32 @@ def test_app_mount_expands_viewroutes_with_permissions() -> None:
     app = App()
     app.mount(
         (
-            ViewRoute(path="/widgets", view=list_pv, permissions=("shop.widget.read",)),
-            ViewRoute(path="/widgets/new", view=form_pv, permissions=("shop.widget.create",)),
-            ViewRoute(path="/widgets/{id}", view=form_pv, permissions=("shop.widget.read",)),
-        )
+            ViewRoute(path="/widgets", view=list_pv),
+            ViewRoute(path="/widgets/new", view=form_pv),
+            ViewRoute(path="/widgets/{id}", view=form_pv),
+        ),
+        permission="shop.widget",
     )
     by = {(r.path, r.methods[0]): r for r in app.routes}
-    # List binding → Kind.LIST gated by its ALL-OF permissions
+    # List binding → Kind.LIST gated by the expansion's single .read key
     assert by[("/widgets", "GET")].kind is Kind.LIST
-    assert by[("/widgets", "GET")].permissions == ("shop.widget.read",)
-    # Form bindings dedupe to one form route-set (5 routes), all carrying the mount permissions
+    assert by[("/widgets", "GET")].permission == "shop.widget.read"
+    # Form bindings dedupe to one RESTful route-set (5 routes), each with its own single permission:
+    # GET /new (.create form), GET /{id} (.read edit form), POST /widgets (.create), PATCH /{id}
+    # (.update), DELETE /{id} (.delete) — no /delete path suffix.
     assert by[("/widgets/new", "GET")].kind is Kind.FORM
-    assert by[("/widgets/new", "GET")].permissions == ("shop.widget.create",)
+    assert by[("/widgets/new", "GET")].permission == "shop.widget.create"
+    assert by[("/widgets", "POST")].permission == "shop.widget.create"  # create on collection
+    assert by[("/widgets/{id}", "GET")].permission == "shop.widget.read"
+    assert by[("/widgets/{id}", "PATCH")].permission == "shop.widget.update"
+    assert by[("/widgets/{id}", "DELETE")].permission == "shop.widget.delete"
     # exactly one form set (deduped): 5 form routes for the base
     form_routes = [r for r in app.routes if r.kind is Kind.FORM]
     assert len(form_routes) == 5
+    # no /delete path suffix anywhere
+    assert not any(r.path.endswith("/delete") for r in app.routes)
     # permission prefix derived from the path for the row-action / table-ACL layer
-    assert (
-        by[("/widgets", "GET")].resource_permission == "shop.widget"
-        or by[("/widgets", "GET")].resource_permission == "widgets"
-    )
+    assert by[("/widgets", "GET")].resource_permission == "shop.widget"
 
 
 def test_route_action_and_mount_actions() -> None:
@@ -221,9 +227,9 @@ def test_route_action_and_mount_actions() -> None:
         return None
 
     ra = RouteAction(
-        path="/admin/roles/define", handler=define_role, permissions=("admin.roles.create",)
+        path="/admin/roles/define", handler=define_role, permission="admin.roles.create"
     )
-    assert ra.methods == ("POST",) and ra.permissions == ("admin.roles.create",)
+    assert ra.methods == ("POST",) and ra.permission == "admin.roles.create"
     with pytest.raises(ValueError, match="path"):
         RouteAction(path="", handler=define_role)
     with pytest.raises(ValueError, match="handler"):
@@ -233,7 +239,7 @@ def test_route_action_and_mount_actions() -> None:
     app.mount((), actions=(ra,))
     rd = next(r for r in app.routes if r.path == "/admin/roles/define")
     assert rd.kind is Kind.ACTION and rd.methods == ("POST",)
-    assert rd.handler is define_role and rd.permissions == ("admin.roles.create",)
+    assert rd.handler is define_role and rd.permission == "admin.roles.create"
 
 
 def test_route_descriptor_get_and_post() -> None:
@@ -244,17 +250,18 @@ def test_route_descriptor_get_and_post() -> None:
 
     # RouteMethod is a StrEnum: compares/serializes as the plain HTTP verb.
     assert RouteMethod.GET == "GET" and RouteMethod.POST == "POST"
+    assert RouteMethod.PATCH == "PATCH" and RouteMethod.DELETE == "DELETE"
     assert str(RouteMethod.POST) == "POST"
 
-    # a GET page defaults method=GET and may carry title/nav + ALL-OF permissions
-    g = Route(path="/admin", handler=home, title="Admin", nav="Admin", permissions=("a.b.read",))
+    # a GET page defaults method=GET and may carry title/nav + a single permission
+    g = Route(path="/admin", handler=home, title="Admin", nav="Admin", permission="a.b.read")
     assert g.method is RouteMethod.GET and g.title == "Admin" and g.nav == "Admin"
-    assert g.permissions == ("a.b.read",)
+    assert g.permission == "a.b.read"
     # a POST action
-    p = Route(path="/admin/do", handler=home, method=RouteMethod.POST, permissions=("a.b.create",))
-    assert p.method is RouteMethod.POST and p.permissions == ("a.b.create",)
-    # empty permissions = public (e.g. /signin)
-    assert Route(path="/signin", handler=home).permissions == ()
+    p = Route(path="/admin/do", handler=home, method=RouteMethod.POST, permission="a.b.create")
+    assert p.method is RouteMethod.POST and p.permission == "a.b.create"
+    # None permission = public (e.g. /signin)
+    assert Route(path="/signin", handler=home).permission is None
 
     with pytest.raises(ValueError, match="path"):
         Route(path="", handler=home)
@@ -273,20 +280,26 @@ def test_route_expands_get_page_and_post_action() -> None:
 
     app = App()
     app.expand_route(
-        Route(path="/admin", handler=page_h, title="Admin", nav="Admin", permissions=("a.b.read",))
+        Route(path="/admin", handler=page_h, title="Admin", nav="Admin", permission="a.b.read")
     )
     app.expand_route(
-        Route(path="/admin/do", handler=act_h, method=RouteMethod.POST, permissions=("a.b.create",))
+        Route(path="/admin/do", handler=act_h, method=RouteMethod.POST, permission="a.b.create")
+    )
+    app.expand_route(
+        Route(path="/admin/x", handler=act_h, method=RouteMethod.DELETE, permission="a.b.delete")
     )
     by = {(r.path, r.methods[0]): r for r in app.routes}
-    # GET → Kind.PAGE, title/nav carried, ALL-OF permissions gate
+    # GET → Kind.PAGE, title/nav carried, single permission gate
     pg = by[("/admin", "GET")]
     assert pg.kind is Kind.PAGE and pg.title == "Admin" and pg.nav == "Admin"
-    assert pg.permissions == ("a.b.read",)
+    assert pg.permission == "a.b.read"
     # POST → Kind.ACTION, no title/nav, its own permission
     ac = by[("/admin/do", "POST")]
     assert ac.kind is Kind.ACTION and ac.title is None and ac.nav is None
-    assert ac.permissions == ("a.b.create",)
+    assert ac.permission == "a.b.create"
+    # DELETE → Kind.ACTION too, method preserved
+    dl = by[("/admin/x", "DELETE")]
+    assert dl.kind is Kind.ACTION and dl.methods == ("DELETE",) and dl.permission == "a.b.delete"
 
 
 def test_pageroute_bundle_and_collect() -> None:
@@ -316,13 +329,13 @@ def test_pageroute_bundle_and_collect() -> None:
     list_pv = PageView(model=Widget, view=ListView(fields=(Field("name"),)))
 
     bundle = PageRoute(
-        views=(ViewRoute(path="/widgets", view=list_pv, permissions=("shop.widget.read",)),),
+        views=(ViewRoute(path="/widgets", view=list_pv),),
         routes=(
             Route(
                 path="/widgets/define",
                 handler=define,
                 method=RouteMethod.POST,
-                permissions=("shop.widget.create",),
+                permission="shop.widget.create",
             ),
         ),
         permission="shop.widget",
@@ -340,9 +353,9 @@ def test_pageroute_bundle_and_collect() -> None:
     app.collect_bundle(bundle)
     by = {(r.path, r.methods[0]): r for r in app.routes}
     assert by[("/widgets", "GET")].kind is Kind.LIST
-    assert by[("/widgets", "GET")].permissions == ("shop.widget.read",)
+    assert by[("/widgets", "GET")].permission == "shop.widget.read"
     assert by[("/widgets/define", "POST")].kind is Kind.ACTION
-    assert by[("/widgets/define", "POST")].permissions == ("shop.widget.create",)
+    assert by[("/widgets/define", "POST")].permission == "shop.widget.create"
 
 
 def test_collect_bundle_dedups_form_declared_by_sibling_viewroutes() -> None:
@@ -387,11 +400,13 @@ def test_collect_bundle_dedups_form_declared_by_sibling_viewroutes() -> None:
     counts = Counter((r.path, r.methods) for r in app.routes)
     dups = {k: v for k, v in counts.items() if v > 1}
     assert not dups, f"form set expanded more than once: {dups}"
-    # per-verb gate intact after dedup: /new → .create, /{id} POST → .update, delete → .delete
+    # per-verb single-permission gate intact after dedup, RESTful verbs, no /delete suffix:
+    # POST /widgets → .create, PATCH /{id} → .update, DELETE /{id} → .delete
     by = {(r.path, r.methods[0]): r for r in app.routes}
-    assert by[("/widgets/new", "POST")].permissions == ("shop.widget.create",)
-    assert by[("/widgets/{id}", "POST")].permissions == ("shop.widget.update",)
-    assert by[("/widgets/{id}/delete", "POST")].permissions == ("shop.widget.delete",)
+    assert by[("/widgets", "POST")].permission == "shop.widget.create"
+    assert by[("/widgets/{id}", "PATCH")].permission == "shop.widget.update"
+    assert by[("/widgets/{id}", "DELETE")].permission == "shop.widget.delete"
+    assert not any(r.path.endswith("/delete") for r in app.routes)
 
 
 def test_legacy_pageroute_still_importable() -> None:

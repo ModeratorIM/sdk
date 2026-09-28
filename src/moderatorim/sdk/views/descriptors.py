@@ -284,25 +284,25 @@ class PageView:
 class ViewRoute:
     """One GENERATED model-driven route: a path bound to a :class:`PageView` (model + view); NO
     handler — core expands it into the query→store→render flow. Each expanded sub-route (list GET,
-    ``/new``, ``/{id}`` update, ``/{id}/delete``) declares its OWN full permission via
-    ``permissions`` — no verb is inferred.
+    create ``POST`` on the collection, ``/{id}`` GET/PATCH/DELETE) gates on its OWN single full
+    permission, supplied by the expansion from the resource prefix — no verb is inferred at
+    enforcement.
 
     Named ``ViewRoute`` (not ``Route``) so it never collides with the web framework's route type in
     core. Core resolves new-vs-edit from the path shape (``/x`` list, ``/x/new`` create, ``/x/{id}``
     edit) — see the routing framework.
 
-    GATE — ``permissions``: the app/system-level capabilities this route REQUIRES, declared in FULL
-    (e.g. ``("admin.users.read",)``). Enforced ALL-OF: the caller's RESOLVED permission set (derived
-    from the roles granted to it) must contain EVERY listed key. Empty ⇒ ungated (public).
-    Permissions are a fact about the ROUTE, declared at code-time; ROLES (user-level bundles of
-    permissions) are NOT declared here — they are granted to groups/users at RUNTIME in RBAC data.
-    A viewer is denied ``/new`` or delete simply by NOT holding ``admin.users.create`` /
-    ``admin.users.delete``.
+    GATE — ``permission``: the SINGLE capability the LIST route requires, a full key (e.g.
+    ``"admin.users.read"``). Leave it ``None`` (the norm) and the generated expansion supplies each
+    op its own single permission from the resource prefix — list/detail GET → ``.read``, create →
+    ``.create``, update → ``.update``, delete → ``.delete`` — so a viewer holding only ``.read`` can
+    view records but is denied create/update/delete. Set ``permission`` only to OVERRIDE the list
+    op's gate. ROLES are never declared here — they are granted at RUNTIME in RBAC data.
     """
 
     path: str
     view: PageView
-    permissions: tuple[str, ...] = ()
+    permission: str | None = None
 
     def __post_init__(self) -> None:
         if not self.path:
@@ -313,39 +313,48 @@ class RouteMethod(StrEnum):
     """The HTTP method a :class:`Route` serves. A ``StrEnum`` (Python 3.11+): each member compares
     and serializes AS its string (``RouteMethod.GET == "GET"``), so it passes straight to the
     framework boundary (Starlette ``methods=[route.method]``) with no conversion — type safety at
-    the authoring layer, a plain string at the framework seam. ``GET`` = a page (returns a Page);
-    ``POST`` = a mutation / re-render (returns Redirect | Rendered)."""
+    the authoring layer, a plain string at the framework seam.
+
+    ``GET`` = a page (returns a Page); ``POST`` / ``PATCH`` / ``DELETE`` = a mutation / re-render
+    (returns Redirect | Rendered). The verb carries the operation on a RESTful resource: ``POST``
+    creates on the collection, ``PATCH`` updates the record at ``/{id}``, ``DELETE`` removes it —
+    no ``/delete`` path suffix. The app is htmx-driven, so the edit/delete controls issue these via
+    ``hx-patch`` / ``hx-delete`` (an HTML ``<form>`` alone could only GET/POST)."""
 
     GET = "GET"
     POST = "POST"
+    PATCH = "PATCH"
+    DELETE = "DELETE"
 
 
 @dataclass(frozen=True, slots=True)
 class Route:
-    """One CUSTOM route: a ``path`` served by a hand-written ``handler``. GET (returns a
-    :class:`~moderatorim.sdk.Page`) or POST (returns a :class:`~moderatorim.sdk.Redirect` /
-    :class:`~moderatorim.sdk.Rendered`), selected by ``method``. Replaces ``@app.page`` /
-    ``@app.action`` / ``@app.post`` and the old standalone ``PageRoute`` / :class:`RouteAction` —
-    one item object, method-driven, so a domain's ``routes.py`` is a uniform tuple of declarations.
+    """One CUSTOM route: a ``path`` served by a hand-written ``handler``, keyed by ``method``.
+    GET returns a :class:`~moderatorim.sdk.Page`; POST / PATCH / DELETE return a
+    :class:`~moderatorim.sdk.Redirect` / :class:`~moderatorim.sdk.Rendered`. Replaces the
+    ``@app.page`` / ``@app.action`` / ``@app.post`` decorators and the old standalone
+    ``PageRoute`` / :class:`RouteAction` — one item object, method-driven, so a domain's
+    ``routes.py`` is a uniform tuple of declarations.
 
     * ``path`` — the URL path (must be non-empty).
     * ``handler`` — an ``async (ctx) -> Page | Redirect | Rendered`` callable (required).
-    * ``method`` — :class:`RouteMethod`. ``GET`` renders a page; ``POST`` performs a mutation /
+    * ``method`` — :class:`RouteMethod`. GET renders a page; POST/PATCH/DELETE perform a mutation /
       in-place re-render. One Route = one method.
     * ``title`` — GET pages only: the document ``<title>``.
     * ``nav`` — GET pages only: contribute a gate-aware left-rail nav entry (shown when the gate
       passes).
-    * ``permissions`` — the GATE.
+    * ``permission`` — the GATE.
 
-    GATE — ``permissions``: the app/system-level capabilities this route REQUIRES, declared in FULL
-    (e.g. ``("admin.users.create",)``). Enforced ALL-OF: the caller must hold EVERY listed
-    permission — its RESOLVED permission set (derived from the roles granted to it) must be a
-    superset. Empty ⇒ ungated (public, e.g. ``/signin``). Permissions are a fact about the ROUTE,
-    declared at code-time; ROLES (user-level bundles of permissions) are NOT declared here — they
-    are granted to groups/users at RUNTIME in RBAC data (users→groups→roles→permissions). A viewer
-    is denied ``/new`` or delete simply by NOT holding ``admin.users.create`` /
-    ``admin.users.delete``. There is no method→verb inference (the old ``_derive_key`` behaviour is
-    removed): the required capability is always explicit in ``permissions``.
+    GATE — ``permission``: the SINGLE app/system-level capability this route REQUIRES, a full key
+    (e.g. ``"admin.users.create"``). The caller passes when their RESOLVED permission set (derived
+    from the roles granted to them) contains it. ``None`` ⇒ ungated (public, e.g. ``/signin``). One
+    route requires one permission — to ACCESS a record you need ``.read`` (the GET page), and each
+    mutating route names the one capability its action needs (``.create`` / ``.update`` /
+    ``.delete``). The permission is a fact about the ROUTE, declared at code-time; ROLES (user-level
+    bundles of permissions) are NOT declared here — they are granted at RUNTIME in RBAC data
+    (users→groups→roles→permissions). A viewer holding only ``.read`` is denied create/update/delete
+    because they don't hold those permissions. There is no method→verb inference — the required
+    capability is always the explicit full ``permission``.
     """
 
     path: str
@@ -353,7 +362,7 @@ class Route:
     method: RouteMethod = RouteMethod.GET
     title: str | None = None
     nav: str | None = None
-    permissions: tuple[str, ...] = ()
+    permission: str | None = None
 
     def __post_init__(self) -> None:
         if not self.path:
@@ -373,14 +382,13 @@ class RouteAction:
     record at ``{base}/{id}/action``); a ``RouteAction`` is a page-level mutation at its own path
     (e.g. ``/admin/roles/define``).
 
-    GATE — ``permissions`` (ALL-OF, full keys), the same model as :class:`Route`. The legacy
-    ``permission`` / ``roles`` gate fields are GONE — a POST action declares its full required
-    capability in ``permissions``.
+    GATE — ``permission`` (a single full key), the same model as :class:`Route`. A POST action
+    declares the one capability it requires.
     """
 
     path: str
     handler: object  # a callable (ctx) -> Redirect|Rendered, like an @app.action body
-    permissions: tuple[str, ...] = ()
+    permission: str | None = None
     methods: tuple[str, ...] = ("POST",)
 
     def __post_init__(self) -> None:
