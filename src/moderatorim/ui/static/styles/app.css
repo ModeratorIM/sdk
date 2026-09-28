@@ -733,19 +733,6 @@ main.responsive {
   .mim-cal-events { flex-direction: row; flex-wrap: wrap; }
 }
 
-/* --- Model-driven List columns editor (S5, design §3a) --------------------- */
-.mim-cols-editor { display: inline-block; position: relative; }
-.mim-cols-editor > summary { list-style: none; cursor: pointer; }
-.mim-cols-editor > summary::-webkit-details-marker { display: none; }
-.mim-cols-form {
-  position: absolute; z-index: 20; margin-top: 0.35rem; min-width: 12rem;
-  display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem;
-  background: var(--surface); border: 1px solid var(--outline-variant);
-  border-radius: 0.6rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-}
-.mim-cols-item { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-.mim-cols-form button { margin-top: 0.35rem; align-self: flex-start; }
-
 /* --- Model-driven List view (ui-view-design, Stage 1) ---------------------- */
 /* A modern Material data table in a surface card. Colours from Beer/theme tokens; layout from
    the --mim-view-* / --mim-row-height vars. Scoped under .mim-list — no global element bleed. */
@@ -796,19 +783,47 @@ main.responsive {
   outline-offset: 1px;
   border-color: var(--primary);
 }
-/* Filter + columns disclosures + New push to the right of the search. */
+/* Filter + columns controls are icon buttons that sit to the right of the search. */
 .mim-list-filters, .mim-list-toolbar > .mim-cols-editor { flex: 0 0 auto; }
-.mim-list-filters { display: inline-block; position: relative; }
+.mim-list-filters { display: inline-block; }
 .mim-list-filters > summary { list-style: none; cursor: pointer; }
 .mim-list-filters > summary::-webkit-details-marker { display: none; }
-.mim-filter-builder {
-  position: absolute; z-index: 20; margin-top: 0.35rem; min-width: 14rem;
-  display: flex; flex-direction: column; gap: 0.5rem; padding: var(--mim-view-pad);
+.mim-filter-toggle, .mim-cols-toggle { display: inline-flex; align-items: center; }
+/* When the Filters disclosure is open, its panel drops to a FULL-WIDTH row BELOW the search/toolbar
+   controls (the toolbar is flex-wrap, so flex-basis:100% forces the panel onto its own line). */
+.mim-filter-panel {
+  flex-basis: 100%;
+  margin-top: 0.5rem;
+  padding: var(--mim-view-pad);
+  border-top: 1px solid var(--outline-variant);
+  display: flex; flex-direction: column; gap: 0.6rem;
+}
+.mim-list-filters[open] { flex-basis: 100%; }
+/* Active-condition chips: removable pills above the add-condition builder. */
+.mim-filter-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mim-filter-chip { display: inline-flex; align-items: center; gap: 0.25rem; }
+.mim-filter-chip-remove {
+  display: inline-flex; align-items: center; border: 0; background: transparent;
+  cursor: pointer; padding: 0; color: inherit; opacity: 0.7;
+}
+.mim-filter-chip-remove:hover { opacity: 1; }
+.mim-filter-chip-remove i { font-size: 1rem; }
+.mim-filter-builder { display: flex; flex-direction: column; gap: 0.5rem; }
+.mim-filter-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.mim-filter-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.mim-filter-controls { display: flex; gap: 0.5rem; }
+/* Columns: a Beer CSS popup <menu> anchored to the view_column icon button. */
+.mim-cols-editor { display: inline-block; position: relative; }
+.mim-cols-menu {
+  position: absolute; right: 0; top: 100%; z-index: 20; margin-top: 0.35rem; min-width: 12rem;
+  display: none; flex-direction: column; gap: 0.35rem; padding: var(--mim-view-pad);
   background: var(--surface); color: var(--on-surface);
   border: 1px solid var(--outline-variant); border-radius: 0.6rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
 }
-.mim-filter-field { width: 100%; }
+.mim-cols-menu.active { display: flex; }
+.mim-cols-form { display: flex; flex-direction: column; gap: 0.35rem; }
+.mim-cols-item { display: flex; align-items: center; gap: 0.4rem; }
 /* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
 .mim-list-table { width: 100%; border-collapse: collapse; }
 .mim-list-table thead th {

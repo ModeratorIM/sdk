@@ -59,6 +59,23 @@
 
   document.addEventListener("click", function (evt) {
     if (!evt.target.closest) return;
+    // Columns Beer popup menu toggle.
+    var colTrigger = evt.target.closest("[data-mim-columns-toggle]");
+    if (colTrigger) {
+      evt.preventDefault();
+      var editor = colTrigger.closest(".mim-cols-editor");
+      var menu = editor && editor.querySelector(".mim-cols-menu");
+      if (menu) menu.classList.toggle("active");
+      return;
+    }
+    // Remove an active-condition chip (drops its hidden f_field_op param on next Apply/submit).
+    var chipRm = evt.target.closest(".mim-filter-chip-remove");
+    if (chipRm) {
+      evt.preventDefault();
+      var chip = chipRm.closest(".mim-filter-chip");
+      if (chip) chip.remove();
+      return;
+    }
     var add = evt.target.closest(".mim-filter-add");
     if (add) {
       evt.preventDefault();

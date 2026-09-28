@@ -16,12 +16,12 @@ from moderatorim.ui.avatar import Avatar
 from moderatorim.ui.button import Button
 from moderatorim.ui.card import Card
 from moderatorim.ui.component import Component
+from moderatorim.ui.datacolumns import ColumnOption, DataColumns
+from moderatorim.ui.datafilter import DataFilter, FilterField, FilterState
 from moderatorim.ui.datatable import (
     Column,
     DataRow,
     DataTable,
-    FilterField,
-    FilterState,
     PageState,
     SearchState,
     SortState,
@@ -55,6 +55,9 @@ __all__ = [
     "Button",
     "Card",
     "Column",
+    "ColumnOption",
+    "DataColumns",
+    "DataFilter",
     "DataRow",
     "DataTable",
     "Field",

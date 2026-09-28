@@ -1,19 +1,17 @@
 """``DataTable`` — a Beer CSS data-table COMPOSITE (ui-view-components spec).
 
 Beer CSS gives you a styled ``<table>`` (the primitive); this composite adds the *datatable*
-behavior on top: sortable headers, a realtime search box, a **multi-field** filter builder
-(add N field+operator+value conditions, AND-combined by the query engine), a column-visibility
-editor, a pagination footer and per-row actions — all wired for an htmx region swap.
+behavior on top: sortable headers, a realtime search box, a pagination footer and per-row actions,
+plus SLOTS for a filter control and a column-visibility control that the caller composes and passes
+in (``DataFilter`` / ``DataColumns``) — components never import each other, so the renderer wires
+them together.
 
-**Pure presentation.** It receives already-resolved data + state (rows, columns, sort/search/filter
-state) and renders HTML; it does NOT query, know the store, or resolve REF labels — the caller
-(the ListView renderer, or any app) does that and hands over the results. This is what makes it
-reusable: any screen that produces ``Column``/``DataRow`` data gets the same dynamic table.
+**Pure presentation.** It receives already-resolved data + state (rows, columns, sort/search state,
+pre-built control components) and renders HTML; it does NOT query, know the store, or resolve REF
+labels — the caller (the ListView renderer, or any app) does that. This is what makes it reusable.
 
 Follows the ``Component`` contract (``render() -> Raw``, composes via ``tag``, imports only
-``component`` + ``html``). The dynamic add/remove of filter-condition rows is driven by
-``datatable-filter.js`` (registered in ``assets``); the server reads the ``f_<field>_<op>=value``
-params the query engine already understands, so the filter is genuinely multi-field.
+``component`` + ``html``).
 """
 
 from __future__ import annotations
@@ -32,7 +30,7 @@ _DEFAULT_REGION = "mim-list-region"
 class Column:
     """One table column. ``key`` is the row-dict key; ``label`` is the header text.
 
-    ``kind`` drives cell rendering: ``"text"`` (default, escaped), ``"bool"`` (a status pill),
+    ``kind`` drives cell rendering: ``"text"`` (default, escaped), ``"bool"`` (a check/close icon),
     ``"ref"`` (the caller pre-resolves the id→label in the DataRow cell). ``sortable`` renders the
     header as a sort link. ``custom`` is the escape hatch: a ``(row) -> cell content`` callback,
     invoked with the raw row dict; a custom column is neither sortable nor filterable.
@@ -77,26 +75,6 @@ class SearchState:
 
 
 @dataclass(frozen=True, kw_only=True)
-class FilterField:
-    """One filter-able field offered in the builder: its key, header label, and the operator
-    tokens valid for its type (e.g. ``("eq", "contains")``)."""
-
-    key: str
-    label: str
-    ops: tuple[str, ...]
-
-
-@dataclass(frozen=True, kw_only=True)
-class FilterState:
-    """Multi-field filter builder state. ``fields`` are the pickable columns (each with its own
-    operator set); ``active`` are the conditions currently applied, as ``(field, op, value)``
-    triples, so they re-render on a region swap. Rendered only when ``fields`` is non-empty."""
-
-    fields: tuple[FilterField, ...] = ()
-    active: tuple[tuple[str, str, str], ...] = ()
-
-
-@dataclass(frozen=True, kw_only=True)
 class PageState:
     """Pagination: 1-based ``page`` of ``pages`` total, ``total`` record count."""
 
@@ -106,7 +84,7 @@ class PageState:
 
 
 class DataTable(Component):
-    """A Beer CSS data table with sort, realtime search, a multi-field filter, column editor,
+    """A Beer CSS data table with sort, realtime search, filter + columns control slots,
     pagination and row actions. See the module docstring for the presentation-only contract."""
 
     def __init__(
@@ -118,8 +96,8 @@ class DataTable(Component):
         region_id: str = _DEFAULT_REGION,
         sort: SortState | None = None,
         search: SearchState | None = None,
-        filters: FilterState | None = None,
-        columns_editor: Component | Raw | str = "",
+        filter_control: Component | Raw | str = "",
+        columns_control: Component | Raw | str = "",
         pagination: PageState | None = None,
         row_href: bool = False,
         row_actions: Sequence[tuple[str, Component | Raw | str]] = (),
@@ -133,15 +111,14 @@ class DataTable(Component):
         self.region_id = region_id
         self.sort = sort
         self.search = search
-        self.filters = filters
-        self.columns_editor = columns_editor
+        # filter_control / columns_control: pre-built DataFilter / DataColumns components, composed
+        # by the caller (component isolation — DataTable never imports them). Either may be blank.
+        self.filter_control = filter_control
+        self.columns_control = columns_control
         self.pagination = pagination
         self.row_href = row_href
-        # row_actions: (id, rendered-cell) pairs would be per-row; instead the caller passes a
-        # callback via a custom Column, or we render an actions column when actions_for is given.
         self.row_actions = tuple(row_actions)
-        # actions: list-level action buttons (New / bulk actions), rendered in a right-aligned bar
-        # ABOVE the toolbar — distinct from toolbar_extra (which sits inline with search/filters).
+        # actions: list-level action buttons (bulk actions), right-aligned bar ABOVE the toolbar.
         self.actions = tuple(actions)
         self.toolbar_extra = tuple(toolbar_extra)
         self.empty_label = empty_label
@@ -204,11 +181,7 @@ class DataTable(Component):
         body_rows: list[Any] = []
         for row in self.rows:
             cells = [
-                tag(
-                    "td",
-                    self._cell_value(col, row),
-                    **{"data-label": col.header},
-                )
+                tag("td", self._cell_value(col, row), **{"data-label": col.header})
                 for col in self.columns
             ]
             if self.row_actions:
@@ -222,11 +195,7 @@ class DataTable(Component):
                 )
             attrs: dict[str, Any] = {}
             if self.row_href and row.href:
-                attrs = {
-                    "hx-get": row.href,
-                    "hx-target": "body",
-                    "class": "mim-list-row",
-                }
+                attrs = {"hx-get": row.href, "hx-target": "body", "class": "mim-list-row"}
             body_rows.append(tag("tr", *cells, **attrs))
         return tag("tbody", *body_rows)
 
@@ -249,130 +218,6 @@ class DataTable(Component):
                 "hx-preserve": "true",
                 "class": "mim-list-search",
             },
-        )
-
-    def _filter_builder(self) -> Any:
-        """A MULTI-FIELD filter: a form whose rows each pick a field, an operator and a value; a
-        + button clones a row (datatable-filter.js), Apply hx-GETs the region with every
-        ``f_<field>_<op>=value`` param. The field/op catalogue rides in a data attribute so the JS
-        can populate the operator select when the field changes."""
-        f = self.filters
-        assert f is not None
-
-        # catalogue: field key → (label, ops[]) — consumed by the JS to build rows.
-        cat_opts = [tag("option", ff.label, value=ff.key) for ff in f.fields]
-        ops_by_field = ";".join(f"{ff.key}:{','.join(ff.ops)}" for ff in f.fields)
-
-        # pre-render the active conditions so they survive a region swap.
-        active_rows: list[Any] = []
-        for fld, op, val in f.active:
-            active_rows.append(self._condition_row(f, selected=(fld, op, val)))
-        if not active_rows:
-            active_rows.append(self._condition_row(f))
-
-        body = tag(
-            "div",
-            tag("div", *active_rows, **{"class": "mim-filter-rows"}),
-            tag(
-                "div",
-                tag(
-                    "button",
-                    tag("i", "add"),
-                    " Add condition",
-                    **{"type": "button", "class": "button border small mim-filter-add"},
-                ),
-                tag(
-                    "button",
-                    "Apply",
-                    **{"type": "submit", "class": "button small mim-filter-apply"},
-                ),
-                **{"class": "mim-filter-controls"},
-            ),
-            **{
-                "class": "mim-filter-builder",
-                "data-region": self.region_id,
-                "data-ops": ops_by_field,
-            },
-        )
-        form = tag(
-            "form",
-            body,
-            **{
-                "hx-get": self.base_path,
-                "hx-target": f"#{self.region_id}",
-                "hx-swap": "outerHTML",
-                "class": "mim-filter-form",
-            },
-        )
-        # a hidden template row for the JS to clone (field select with all options).
-        template = tag(
-            "template",
-            self._condition_row(f),
-            **{"class": "mim-filter-template"},
-        )
-        return tag(
-            "details",
-            tag("summary", "Filters", **{"class": "button border small mim-filter-toggle"}),
-            form,
-            template,
-            tag("div", *cat_opts, **{"hidden": "hidden", "class": "mim-filter-fieldopts"}),
-            **{"class": "mim-list-filters"},
-        )
-
-    def _condition_row(self, f: FilterState, selected: tuple[str, str, str] | None = None) -> Any:
-        """One field+op+value condition. Names are ``f_<field>_<op>`` — but since field/op are
-        chosen client-side, the JS rewrites the value input's ``name`` to the composed token on
-        change/submit; the pre-rendered active rows already carry the composed name so a swap
-        re-applies them without JS."""
-        sel_field, sel_op, sel_val = selected or ("", "", "")
-        field_opts = [
-            tag(
-                "option",
-                ff.label,
-                **(
-                    {"value": ff.key, "selected": "selected"}
-                    if ff.key == sel_field
-                    else {"value": ff.key}
-                ),
-            )
-            for ff in f.fields
-        ]
-        # operator options: for a pre-selected field, that field's ops; else the first field's.
-        current = next(
-            (ff for ff in f.fields if ff.key == sel_field), f.fields[0] if f.fields else None
-        )
-        op_opts = []
-        if current:
-            for op in current.ops:
-                op_opts.append(
-                    tag(
-                        "option",
-                        op,
-                        **(
-                            {"value": op, "selected": "selected"} if op == sel_op else {"value": op}
-                        ),
-                    )
-                )
-        value_name = f"f_{sel_field}_{sel_op}" if sel_field and sel_op else ""
-        return tag(
-            "div",
-            tag("select", *field_opts, **{"class": "mim-filter-field"}),
-            tag("select", *op_opts, **{"class": "mim-filter-op"}),
-            tag(
-                "input",
-                **{
-                    "type": "text",
-                    "class": "mim-filter-value",
-                    "value": sel_val,
-                    **({"name": value_name} if value_name else {}),
-                },
-            ),
-            tag(
-                "button",
-                tag("i", "close"),
-                **{"type": "button", "class": "button transparent circle small mim-filter-remove"},
-            ),
-            **{"class": "mim-filter-row"},
         )
 
     def _footer(self) -> Any:
@@ -410,14 +255,15 @@ class DataTable(Component):
 
     # ---- compose -----------------------------------------------------------
     def render(self) -> Raw:
-        toolbar: list[Any] = []
+        # Toolbar top row: search + the control icons (filter / columns) + any toolbar_extra.
+        controls: list[Any] = []
         if self.search is not None:
-            toolbar.append(self._search_box())
-        if self.filters is not None and self.filters.fields:
-            toolbar.append(self._filter_builder())
-        if self.columns_editor:
-            toolbar.append(self.columns_editor)
-        toolbar.extend(self.toolbar_extra)
+            controls.append(self._search_box())
+        if self.filter_control:
+            controls.append(self.filter_control)
+        if self.columns_control:
+            controls.append(self.columns_control)
+        controls.extend(self.toolbar_extra)
 
         if not self.rows:
             table_or_empty: Any = tag("p", self.empty_label, **{"class": "mim-list-empty"})
@@ -429,17 +275,12 @@ class DataTable(Component):
                 **{"class": "border stripes mim-list-table"},
             )
 
-        # ListAction bar: list-level actions (New / bulk), right-aligned ABOVE the toolbar. Rendered
-        # only when actions are supplied, so a list with none has no empty bar.
         parts: list[Any] = []
+        # ListAction bar: list-level actions, right-aligned ABOVE the toolbar. Only when supplied.
         if self.actions:
             parts.append(tag("div", *self.actions, **{"class": "mim-list-actionbar"}))
-        parts.append(tag("div", *toolbar, **{"class": "mim-list-toolbar"}))
+        parts.append(tag("div", *controls, **{"class": "mim-list-toolbar"}))
         parts.append(table_or_empty)
         parts.append(self._footer())
 
-        return tag(
-            "div",
-            *parts,
-            **{"class": "mim-list", "id": self.region_id},
-        )
+        return tag("div", *parts, **{"class": "mim-list", "id": self.region_id})
