@@ -154,7 +154,14 @@ class Manifest:
     # principal. Core validates the "{app}" ownership prefix and seeds them (apps declare, core
     # decides) — the SDK only carries the declaration.
     system_users: dict[str, tuple[str, ...]] = field(default_factory=dict)
-    routes: Callable[[Any], None] | None = None
+    # The optional route-recording hook. Historically imperative: ``routes(app) -> None`` mutates
+    # the passed SDK App (``app.mount(...)`` / the ``@app.page``/``@app.action``/``@app.post``
+    # decorators). The declarative-routes migration (design §2c, Option A) widens it so a unit's
+    # ``routes`` may instead be a zero-arg ``routes() -> PageRoute | tuple[PageRoute, ...]`` that
+    # RETURNS the domain's route bundle(s); core detects the form by arity and collects a returned
+    # bundle onto the core App via ``collect_bundle``. Both call shapes coexist during the
+    # migration (apps stay imperative until Stage 3), so the annotation admits either.
+    routes: Callable[..., PageRoute | tuple[PageRoute, ...] | None] | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
