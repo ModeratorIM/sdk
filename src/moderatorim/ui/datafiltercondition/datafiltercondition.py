@@ -86,17 +86,22 @@ class DataFilterCondition(Component):
         ]
         # Changing the field re-renders THIS row from the server (ServiceNow round-trip): the value
         # control + operator list come back typed for the new field. Targets the closest row.
-        return tag(
+        # Beer CSS styles a select via a `.field suffix border` WRAPPER (+ arrow), not classes on
+        # the bare <select> — so wrap it (small round for the compact filter look).
+        select = tag(
             "select",
             *opts,
             **{
-                "class": "mim-filter-field small round",
+                "class": "mim-filter-field",
                 "name": "field",
                 "hx-get": self.row_path,
                 "hx-target": "closest .mim-filter-row",
                 "hx-swap": "outerHTML",
                 "hx-trigger": "change",
             },
+        )
+        return tag(
+            "div", select, tag("i", "arrow_drop_down"), class_="field suffix border small round"
         )
 
     # Human labels for the query-param operator tokens (value stays the token for the engine).
@@ -120,7 +125,10 @@ class DataFilterCondition(Component):
             )
             for op in ops
         ]
-        return tag("select", *opts, **{"class": "mim-filter-op small round"})
+        select = tag("select", *opts, **{"class": "mim-filter-op"})
+        return tag(
+            "div", select, tag("i", "arrow_drop_down"), class_="field suffix border small round"
+        )
 
     def _value_input(self) -> Any:
         """The type-aware value control via the shared ``render_column`` (same as FormView).

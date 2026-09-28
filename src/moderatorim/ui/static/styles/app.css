@@ -815,8 +815,11 @@ main.responsive {
 .mim-filter-row {
   display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
 }
-.mim-filter-row .mim-filter-field { flex: 0 0 auto; min-width: 9rem; }
-.mim-filter-row .mim-filter-op { flex: 0 0 auto; min-width: 7rem; }
+/* field/operator selects are Beer `.field suffix` wrappers now; size the wrappers, not the bare
+   <select> (which carries .mim-filter-field / .mim-filter-op for the JS). */
+.mim-filter-row > .field { flex: 0 0 auto; margin: 0; }
+.mim-filter-row > .field:has(.mim-filter-field) { min-width: 9rem; }
+.mim-filter-row > .field:has(.mim-filter-op) { min-width: 7rem; }
 .mim-filter-row .mim-filter-value { flex: 1 1 12rem; }
 /* The value control is whatever render_column produced (Input/Select/Switch/…); make it fill. */
 .mim-filter-row .mim-filter-value > * { margin: 0; }
