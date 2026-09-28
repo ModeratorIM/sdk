@@ -89,5 +89,5 @@ class DataColumns(Component):
                 "data-mim-columns-toggle": "true",
             },
         )
-        menu = tag("menu", form, **{"id": _MENU_ID, "class": "no-wrap mim-cols-menu"})
+        menu = tag("div", form, **{"id": _MENU_ID, "class": "mim-cols-menu"})
         return tag("div", trigger, menu, **{"class": "mim-cols-editor"})
