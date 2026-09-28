@@ -11,7 +11,7 @@ injected handles (`ctx.store`, `ctx.authz`, `ctx.can`, the event bus).
 - Tables are declared with the `{name}_` prefix (e.g. `{name}_users`), validated at boot.
 - Permissions and roles live in the `{name}.*` namespace.
 - Fold by domain: `moderatorim generate model <domain>` creates `<domain>/model.py`, and
-  `generate service/routes/screen <domain>` add to that same domain package.
+  `generate service/routes/view <domain>` add to that same domain package.
 
 ## Layout
 

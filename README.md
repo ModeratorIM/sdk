@@ -60,13 +60,13 @@ cd my_shop
 moderatorim generate model products --field title:str --field price:int
 moderatorim generate service products      # -> products/service.py
 moderatorim generate routes products       # -> products/routes.py
-moderatorim generate screen products       # -> products/screen.py
+moderatorim generate view products         # -> products/view.py
 moderatorim generate test products         # -> tests/test_products.py
 ```
 
 `generate model` also declares the table as `my_shop_products` and registers the model in the
 manifest. Field types: `str` / `int` / `bool` / `float` / `text` / `datetime`. `generate` is
-aliased `g`. Backends and platforms have no web surface, so `routes`/`screen` are only offered in
+aliased `g`. Backends and platforms have no web surface, so `routes`/`view` are only offered in
 an app. The commands only ever add files (and one manifest line for a model) — they never overwrite
 existing source.
 

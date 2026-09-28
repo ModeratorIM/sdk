@@ -169,10 +169,10 @@ def build_parser() -> argparse.ArgumentParser:
     gen = sub.add_parser(
         "generate",
         aliases=["g"],
-        help="Generate a domain artifact in the current unit (model/service/routes/screen/test).",
+        help="Generate a domain artifact in the current unit (model/service/routes/view/test).",
     )
     gen_sub = gen.add_subparsers(dest="artifact", metavar="<artifact>")
-    for artifact in ("model", "service", "routes", "screen", "test"):
+    for artifact in ("model", "service", "routes", "view", "test"):
         p = gen_sub.add_parser(artifact, help=f"Generate a {artifact} for a domain.")
         p.add_argument("domain", help="Domain name (lowercase, e.g. 'users').")
         if artifact == "model":
