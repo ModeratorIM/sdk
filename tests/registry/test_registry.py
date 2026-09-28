@@ -30,6 +30,20 @@ def test_nav_entry_icon_is_asset() -> None:
     assert NavEntry("A", "/a", "/static/a.svg").icon_is_asset is True
 
 
+def test_nav_entry_permission_accepts_permission_object() -> None:
+    # NavEntry.permission accepts a Permission object or a bare key; core normalizes with str().
+    from moderatorim.sdk import Permission, PermissionAction
+
+    e = NavEntry(
+        "Users", "/admin/users", permission=Permission("admin", "users", PermissionAction.READ)
+    )
+    assert str(e.permission) == "admin.users.read"
+    # a bare string still works
+    assert NavEntry("Roles", "/admin/roles", permission="admin.roles.read").permission == (
+        "admin.roles.read"
+    )
+
+
 def test_manifest_system_users_default_empty_and_carries_declaration() -> None:
     # default: no system users
     m = Manifest(name="widget", type=UnitType.APP, register=lambda c: None)

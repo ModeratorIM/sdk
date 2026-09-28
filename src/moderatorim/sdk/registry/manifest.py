@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from moderatorim.sdk.models import Extends, TableModel
 
 if TYPE_CHECKING:  # pragma: no cover - typing only (avoid a runtime import cycle)
-    from moderatorim.sdk.views import PageRoute
+    from moderatorim.sdk.views import PageRoute, Permission
 
 
 def _no_register(_core: Any) -> None:
@@ -39,14 +39,16 @@ class NavEntry:
     """A left-rail navigation entry an app contributes for the authenticated shell.
 
     ``icon`` is a Material Symbol name (``<i>``) or a path to the app's own icon asset (``<img>`` —
-    a value with ``/`` or an image extension). ``permission`` gates visibility (None = always).
-    ``order`` sorts entries (lower first); ties break on ``label``.
+    a value with ``/`` or an image extension). ``permission`` gates visibility (None = always) and
+    accepts a :class:`~moderatorim.sdk.Permission` or a bare key string — core normalizes it with
+    ``str()`` (same as a route gate). ``order`` sorts entries (lower first); ties break on
+    ``label``.
     """
 
     label: str
     path: str
     icon: str = ""
-    permission: str | None = None
+    permission: Permission | str | None = None
     order: int = 100
     badge: str | int | None = None
     # Placement: when True this entry is the app's ENTRY POINT in the account popup menu (gated by
