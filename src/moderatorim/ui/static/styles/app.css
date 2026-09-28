@@ -743,12 +743,14 @@ main.responsive {
   color: var(--on-surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--mim-view-radius);
-  overflow: hidden; /* clip the sticky header + rounded corners */
+  overflow: visible; /* allow the columns popup to float over the table; corners clipped per-child */
 }
 .mim-list-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  border-top-left-radius: var(--mim-view-radius);
+  border-top-right-radius: var(--mim-view-radius);
   gap: var(--mim-view-gap);
   padding: var(--mim-view-pad);
   background: var(--surface-variant);
@@ -789,16 +791,21 @@ main.responsive {
 .mim-list-filters > summary { list-style: none; cursor: pointer; }
 .mim-list-filters > summary::-webkit-details-marker { display: none; }
 .mim-filter-toggle, .mim-cols-toggle { display: inline-flex; align-items: center; }
-/* When the Filters disclosure is open, its panel drops to a FULL-WIDTH row BELOW the search/toolbar
-   controls (the toolbar is flex-wrap, so flex-basis:100% forces the panel onto its own line). */
+/* The filters wrapper uses display:contents so its two children (the icon trigger + the panel)
+   participate DIRECTLY in the toolbar flex: the trigger stays inline with search/columns, and the
+   panel is a full-width row (flex-basis:100%) that wraps BELOW them. The panel is hidden until the
+   trigger toggles `.active` (datatable-filter.js) — opening it never moves the buttons above. */
+.mim-list-filters { display: contents; }
 .mim-filter-panel {
-  flex-basis: 100%;
-  margin-top: 0.5rem;
-  padding: var(--mim-view-pad);
+  display: none;
+  flex: 1 0 100%;
+  order: 1;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
   border-top: 1px solid var(--outline-variant);
-  display: flex; flex-direction: column; gap: 0.6rem;
+  flex-direction: column; gap: 0.6rem;
 }
-.mim-list-filters[open] { flex-basis: 100%; }
+.mim-filter-panel.active { display: flex; }
 /* Active-condition chips: removable pills above the add-condition builder. */
 .mim-filter-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .mim-filter-chip { display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -812,17 +819,18 @@ main.responsive {
 .mim-filter-rows { display: flex; flex-direction: column; gap: 0.4rem; }
 .mim-filter-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .mim-filter-controls { display: flex; gap: 0.5rem; }
-/* Columns: a Beer CSS popup <menu> anchored to the view_column icon button. */
+/* Columns: the view_column icon trigger + a Beer CSS popup <menu> anchored to it (absolute,
+   elevated, floating over the table). z-index above the sticky thead so borders never overlay it. */
 .mim-cols-editor { display: inline-block; position: relative; }
 .mim-cols-menu {
-  position: absolute; right: 0; top: 100%; z-index: 20; margin-top: 0.35rem; min-width: 12rem;
+  position: absolute; right: 0; top: 100%; z-index: 50; margin-top: 0.35rem; min-width: 13rem;
   display: none; flex-direction: column; gap: 0.35rem; padding: var(--mim-view-pad);
   background: var(--surface); color: var(--on-surface);
   border: 1px solid var(--outline-variant); border-radius: 0.6rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
 .mim-cols-menu.active { display: flex; }
-.mim-cols-form { display: flex; flex-direction: column; gap: 0.35rem; }
+.mim-cols-form { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
 .mim-cols-item { display: flex; align-items: center; gap: 0.4rem; }
 /* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
 .mim-list-table { width: 100%; border-collapse: collapse; }

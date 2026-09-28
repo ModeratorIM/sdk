@@ -164,15 +164,18 @@ class DataFilter(Component):
             },
         )
 
-        # The expandable region lives BELOW the search: a <details> whose <summary> is the icon
-        # trigger; the panel (form) spans the full toolbar width beneath the search row.
-        return tag(
-            "details",
-            tag(
-                "summary",
-                tag("i", "filter_list"),
-                **{"class": "button transparent circle mim-filter-toggle", "title": "Filters"},
-            ),
-            tag("div", form, **{"class": "mim-filter-panel"}),
-            **{"class": "mim-list-filters"},
+        # A button trigger (stays inline in the toolbar) + a SEPARATE full-width panel that toggles
+        # open below the toolbar controls. Kept as siblings so opening the panel never moves the
+        # icon. `datatable-filter.js` toggles `.active` on the panel via the trigger's data hook.
+        trigger = tag(
+            "button",
+            tag("i", "filter_list"),
+            **{
+                "type": "button",
+                "class": "button transparent circle mim-filter-toggle",
+                "title": "Filters",
+                "data-mim-filter-toggle": "true",
+            },
         )
+        panel = tag("div", form, **{"class": "mim-filter-panel"})
+        return tag("div", trigger, panel, **{"class": "mim-list-filters"})
