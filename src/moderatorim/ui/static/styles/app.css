@@ -933,7 +933,7 @@ main.responsive {
 /* A focused editing surface: a capped, centered card holding heading → (tabs) → fields → sticky
    footer. Colours from Beer/theme tokens; scoped under .mim-form-view — no global bleed. */
 .mim-form-view {
-  max-width: 640px;
+  max-width: 1080px;
   margin: 0 auto;
   background: var(--surface);
   color: var(--on-surface);
@@ -957,10 +957,24 @@ main.responsive {
   padding: var(--mim-view-pad) var(--mim-view-pad) 0;
 }
 .mim-form-overview h5 { margin: 0; }
-/* Tab bar (Material underline tabs) — only when >1 tab. */
+/* ServiceNow-style form header band: record title left, action buttons right. Its own row,
+   above the tab strip. */
+.mim-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mim-view-gap);
+  padding: 0.6rem var(--mim-view-pad);
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container, var(--surface));
+}
+.mim-form-title { margin: 0; font-size: 1rem; }
+.mim-form-actions { display: flex; gap: 0.5rem; align-items: center; }
 .mim-form-tabs {
   display: flex;
+  align-items: center;
   gap: 0.25rem;
+  margin-top: 0;
   padding: 0 var(--mim-view-pad);
   border-bottom: 1px solid var(--outline-variant);
   overflow-x: auto; /* scroll if tabs exceed width (narrow screens) */
@@ -993,39 +1007,10 @@ main.responsive {
 .mim-form-field { display: flex; flex-direction: column; gap: 0.35rem; }
 .mim-form-field.span-2 { grid-column: span 2; }
 .mim-form-field.span-3 { grid-column: span 3; }
-.mim-form-field > label { font-weight: 600; color: var(--on-surface-variant); font-size: 0.9rem; }
-.mim-form-field input,
-.mim-form-field textarea,
-.mim-form-field select {
-  min-height: var(--mim-touch);
-  padding: 0 0.75rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--mim-field-radius);
-  background: var(--surface);
-  color: var(--on-surface);
-  font: inherit;
-}
-.mim-form-field textarea { padding: 0.6rem 0.75rem; min-height: 6rem; }
-.mim-form-field input:focus-visible,
-.mim-form-field textarea:focus-visible,
-.mim-form-field select:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
-  border-color: var(--primary);
-}
+/* Inputs are Beer CSS `.field` wrappers now (small size) — Beer owns their border/padding/label,
+   so we do NOT restyle the raw input/select/textarea here (that fought Beer's own field styling).
+   Only the grid layout, span, and help text are ours. */
 .mim-form-help { color: var(--on-surface-variant); font-size: 0.8rem; }
-/* Sticky footer action row: primary submit right, secondary actions left. */
-.mim-form-footer {
-  display: flex;
-  align-items: center;
-  gap: var(--mim-view-gap);
-  padding: var(--mim-view-pad);
-  border-top: 1px solid var(--outline-variant);
-  background: var(--surface);
-  position: sticky;
-  bottom: 0;
-}
-.mim-form-footer button[type="submit"] { margin-left: auto; order: 100; } /* primary to the right */
 
 /* Responsive: edge-to-edge card + single-column fields on phones. */
 @media (max-width: 640px) {
