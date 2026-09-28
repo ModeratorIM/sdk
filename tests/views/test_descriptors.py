@@ -314,6 +314,40 @@ def test_permission_catalog_generates_itself() -> None:
     ) == ("moderation.reports.update")
 
 
+def test_route_accepts_permission_object_normalized_to_key() -> None:
+    # A Route/ViewRoute/RouteAction may declare permission= as a Permission OBJECT or a bare string;
+    # the expansion normalizes both to the same plain key on the RouteDef, so core enforces
+    # identically (declarative-routes 3.2).
+    from moderatorim.sdk import App, Permission, PermissionAction, Route, RouteMethod
+
+    async def h(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    app = App()
+    # object form
+    app.expand_route(
+        Route(
+            path="/users/new",
+            handler=h,
+            method=RouteMethod.POST,
+            permission=Permission("admin", "users", PermissionAction.CREATE),
+        )
+    )
+    # string form (same key)
+    app.expand_route(
+        Route(
+            path="/roles/new", handler=h, method=RouteMethod.POST, permission="admin.roles.create"
+        )
+    )
+    # None stays ungated
+    app.expand_route(Route(path="/public", handler=h))
+    by = {r.path: r for r in app.routes}
+    assert by["/users/new"].permission == "admin.users.create"  # object → plain key
+    assert isinstance(by["/users/new"].permission, str)  # normalized, not a Permission on RouteDef
+    assert by["/roles/new"].permission == "admin.roles.create"  # string passes through
+    assert by["/public"].permission is None  # ungated
+
+
 def test_route_expands_get_page_and_post_action() -> None:
     from moderatorim.sdk import App, Kind, Route, RouteMethod
 

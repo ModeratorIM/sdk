@@ -302,7 +302,7 @@ class ViewRoute:
 
     path: str
     view: PageView
-    permission: str | None = None
+    permission: Permission | str | None = None
 
     def __post_init__(self) -> None:
         if not self.path:
@@ -424,7 +424,7 @@ class Route:
     method: RouteMethod = RouteMethod.GET
     title: str | None = None
     nav: str | None = None
-    permission: str | None = None
+    permission: Permission | str | None = None
 
     def __post_init__(self) -> None:
         if not self.path:
@@ -450,7 +450,7 @@ class RouteAction:
 
     path: str
     handler: object  # a callable (ctx) -> Redirect|Rendered, like an @app.action body
-    permission: str | None = None
+    permission: Permission | str | None = None
     methods: tuple[str, ...] = ("POST",)
 
     def __post_init__(self) -> None:

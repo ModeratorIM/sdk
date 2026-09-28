@@ -51,6 +51,14 @@ class RouteDef:
     # view expansion, and the declarative Route/ViewRoute expansion alike.
 
 
+def _perm_key(permission: Any) -> str | None:
+    """Normalize a route's declared ``permission`` (a :class:`~moderatorim.sdk.Permission`, a bare
+    ``str`` full key, or ``None``) to the plain key string core enforces. A ``Permission`` renders
+    via ``str()`` (``"{source}.{resource}.{action}"``); a string passes through; ``None`` stays
+    ``None`` (ungated). Typed at the authoring layer, a plain key at the enforcement seam."""
+    return str(permission) if permission is not None else None
+
+
 class App:
     """A collection of self-registering routes. Core owns one; each mounted app owns its own, and
     core's adapter collects each App's :attr:`routes` into the live application.
@@ -229,7 +237,7 @@ class App:
         the bundle's resource prefix, carried for documentation/grouping only (NOT a gate — a route
         without ``permission`` is public)."""
         method = str(getattr(r, "method", "GET"))
-        perm = getattr(r, "permission", None)
+        perm = _perm_key(getattr(r, "permission", None))
         if method == "GET":
             self._routes.append(
                 RouteDef(
@@ -325,7 +333,7 @@ class App:
             pv = r.view  # a PageView
             inner = pv.view
             perm = permission or self._path_to_permission(r.path)
-            override = getattr(r, "permission", None)
+            override = _perm_key(getattr(r, "permission", None))
             if isinstance(inner, ListView):
                 start = len(self._routes)
                 self.list_view(r.path, model=pv.model, view=inner, permission=perm, enrich=enrich)
@@ -352,7 +360,7 @@ class App:
                     a.methods,
                     handler=a.handler,
                     kind=Kind.ACTION,
-                    permission=getattr(a, "permission", None),
+                    permission=_perm_key(getattr(a, "permission", None)),
                 )
             )
 
@@ -366,7 +374,7 @@ class App:
                     handler=p.handler,
                     kind=Kind.PAGE,
                     title=p.title,
-                    permission=getattr(p, "permission", None),
+                    permission=_perm_key(getattr(p, "permission", None)),
                     nav=p.nav,
                 )
             )
