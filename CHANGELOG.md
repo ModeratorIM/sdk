@@ -43,13 +43,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   | `generate model <domain>` (alias `g`) | operate-in-app | Write `<domain>/model.py` and register the model in the manifest's `models=(…)`. Repeatable `--field name:type` (`str`/`int`/`bool`) declares columns; the table name is `{app}_{domain}`. |
   | `generate service <domain>` | operate-in-app | Write `<domain>/service.py` — the domain's service stub. |
   | `generate routes <domain>` | operate-in-app | Write `<domain>/routes.py` — the domain's route registration. **App units only.** |
-  | `generate screen <domain>` | operate-in-app | Write `<domain>/screen.py` — the domain's screen/view stub. **App units only.** |
+  | `generate view <domain>` | operate-in-app | Write `<domain>/view.py` — the domain's view/render stub. **App units only.** |
   | `generate test <domain>` | operate-in-app | Write `tests/test_<domain>.py` — the domain's test stub. |
 
   `create` states the unit **kind** explicitly (nothing exists to infer it from yet). `generate` runs
   **in the unit root** and reads the kind from `./manifest.py` (`Manifest.type`), which **gates the
   valid artifacts**: apps allow all five, backends/platforms allow only `service`/`test` (`routes`/
-  `screen` are refused with a kind-specific message).
+  `view` are refused with a kind-specific message).
 - **`CacheStore` port** — a narrow ephemeral key/value cache contract
   (`get`/`set(ttl=)`/`delete`/`incr`/`expire`/`exists`, string values) that the core caches
   against. Backed by an in-memory default or Redis (chosen by the core from configuration, not the
