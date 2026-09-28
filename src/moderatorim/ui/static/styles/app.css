@@ -808,16 +808,20 @@ main.responsive {
 .mim-filter-panel.active { display: flex; }
 /* Active-condition chips: removable pills above the add-condition builder. */
 .mim-filter-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.mim-filter-chip { display: inline-flex; align-items: center; gap: 0.25rem; }
-.mim-filter-chip-remove {
-  display: inline-flex; align-items: center; border: 0; background: transparent;
-  cursor: pointer; padding: 0; color: inherit; opacity: 0.7;
-}
-.mim-filter-chip-remove:hover { opacity: 1; }
-.mim-filter-chip-remove i { font-size: 1rem; }
 .mim-filter-builder { display: flex; flex-direction: column; gap: 0.5rem; }
-.mim-filter-rows { display: flex; flex-direction: column; gap: 0.4rem; }
-.mim-filter-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.mim-filter-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+/* One ServiceNow-style condition: field ▾ / operator ▾ / typed value / remove — aligned in a row,
+   the value control taking the remaining width. */
+.mim-filter-row {
+  display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+}
+.mim-filter-row .mim-filter-field { flex: 0 0 auto; min-width: 9rem; }
+.mim-filter-row .mim-filter-op { flex: 0 0 auto; min-width: 7rem; }
+.mim-filter-row .mim-filter-value { flex: 1 1 12rem; display: flex; align-items: center; }
+/* The value control is whatever render_column produced (Input/Select/Switch/…); make it fill. */
+.mim-filter-row .mim-filter-value > * { flex: 1 1 auto; margin: 0; }
+.mim-filter-row .mim-filter-value label { width: 100%; }
+.mim-filter-row .mim-filter-remove { flex: 0 0 auto; }
 .mim-filter-controls { display: flex; gap: 0.5rem; }
 /* Columns: the view_column icon trigger + a Beer CSS popup <menu> anchored to it (absolute,
    elevated, floating over the table). z-index above the sticky thead so borders never overlay it. */
