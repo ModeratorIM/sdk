@@ -59,6 +59,15 @@
 
   document.addEventListener("click", function (evt) {
     if (!evt.target.closest) return;
+    // Filters panel toggle (button + separate full-width panel; not a native <details>).
+    var filtTrigger = evt.target.closest("[data-mim-filter-toggle]");
+    if (filtTrigger) {
+      evt.preventDefault();
+      var filters = filtTrigger.closest(".mim-list-filters");
+      var panel = filters && filters.querySelector(".mim-filter-panel");
+      if (panel) panel.classList.toggle("active");
+      return;
+    }
     // Columns Beer popup menu toggle.
     var colTrigger = evt.target.closest("[data-mim-columns-toggle]");
     if (colTrigger) {
