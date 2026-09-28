@@ -90,7 +90,7 @@ class DataFilterCondition(Component):
             "select",
             *opts,
             **{
-                "class": "mim-filter-field",
+                "class": "mim-filter-field small round",
                 "name": "field",
                 "hx-get": self.row_path,
                 "hx-target": "closest .mim-filter-row",
@@ -99,17 +99,28 @@ class DataFilterCondition(Component):
             },
         )
 
+    # Human labels for the query-param operator tokens (value stays the token for the engine).
+    _OP_LABELS = {
+        "eq": "is",
+        "ne": "is not",
+        "lt": "less than",
+        "lte": "at most",
+        "gt": "greater than",
+        "gte": "at least",
+        "contains": "contains",
+    }
+
     def _operator_select(self) -> Raw:
         ops = self._current.ops if self._current else ()
         opts = [
             tag(
                 "option",
-                op,
+                self._OP_LABELS.get(op, op),
                 **({"value": op, "selected": "selected"} if op == self.op else {"value": op}),
             )
             for op in ops
         ]
-        return tag("select", *opts, **{"class": "mim-filter-op"})
+        return tag("select", *opts, **{"class": "mim-filter-op small round"})
 
     def _value_input(self) -> Any:
         """The type-aware value control via the shared ``render_column`` (same as FormView).
@@ -118,7 +129,10 @@ class DataFilterCondition(Component):
         if self._current is None:
             return tag("div", **{"class": "mim-filter-value"})
         control = render_column(
-            self._current.column, self.value, options=self._current.options or None
+            self._current.column,
+            self.value,
+            options=self._current.options or None,
+            label="",  # the field is named by the field select; no redundant per-control label
         )
         return tag("div", control, **{"class": "mim-filter-value"})
 
