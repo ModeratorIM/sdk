@@ -50,14 +50,18 @@ def render_column(
     *,
     options: list[tuple[str, str]] | None = None,
     selected: list[tuple[str, str]] | None = None,
+    label: str | None = None,
 ) -> Component:
     """Render one column as its default widget.
 
     ``options`` supplies (id, label) candidates for ENUM/REF/LISTREF pickers; ``selected`` supplies
     the currently-chosen (id, label) pairs for a LISTREF. The referenced-table ACL filtering that
     produces ``options`` is the caller's responsibility (it needs a store + the request principal).
+    ``label`` overrides the field label: ``None`` (default) uses the column's own label/name; pass
+    ``""`` to render the control WITHOUT a label (e.g. a filter value where the field is named
+    elsewhere).
     """
-    label = column.label or column.name
+    label = (column.label or column.name) if label is None else label
     t = column.type
 
     if t is FieldType.BOOLEAN:
