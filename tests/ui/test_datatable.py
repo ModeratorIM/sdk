@@ -11,8 +11,6 @@ from moderatorim.ui import (
     Column,
     DataRow,
     DataTable,
-    FilterField,
-    FilterState,
     PageState,
     SearchState,
     SortState,
@@ -72,24 +70,15 @@ def test_search_box_is_focus_safe() -> None:
     assert 'value="ab"' in html
 
 
-def test_multi_field_filter_builder() -> None:
-    html = _table(
-        filters=FilterState(
-            fields=(
-                FilterField(key="email", label="Email", ops=("eq", "contains")),
-                FilterField(key="is_super_user", label="Super user", ops=("eq",)),
-            ),
-            active=(("email", "contains", "x.com"),),
-        )
-    )
-    assert "mim-filter-builder" in html
-    # per-field operator catalogue for the JS
-    assert 'data-ops="email:eq,contains;is_super_user:eq"' in html
-    # the active condition is pre-rendered with the composed submit name
-    assert 'name="f_email_contains"' in html
-    assert 'value="x.com"' in html
-    # a template row exists for JS cloning + an add button
-    assert "mim-filter-template" in html and "mim-filter-add" in html
+def test_filter_and_columns_slots_render_in_toolbar() -> None:
+    from moderatorim.ui import tag
+
+    filt = tag("div", "FILTER-SLOT", **{"class": "mim-list-filters"})
+    cols = tag("div", "COLUMNS-SLOT", **{"class": "mim-cols-editor"})
+    html = _table(search=SearchState(), filter_control=filt, columns_control=cols)
+    assert "FILTER-SLOT" in html and "COLUMNS-SLOT" in html
+    # slots render inside the toolbar, after the search
+    assert html.index("mim-list-search") < html.index("FILTER-SLOT")
 
 
 def test_actions_bar_renders_above_toolbar() -> None:
