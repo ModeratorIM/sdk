@@ -22,7 +22,7 @@ _MANIFEST = "manifest.py"
 
 # Which `generate` artifacts each unit kind may produce (design §3a).
 _ALLOWED_BY_KIND: dict[str, frozenset[str]] = {
-    "APP": frozenset({"model", "service", "routes", "view", "test"}),
+    "APP": frozenset({"model", "service", "route", "view", "test"}),
     "BACKEND": frozenset({"service", "test"}),
     "PLATFORM": frozenset({"service", "test"}),
 }

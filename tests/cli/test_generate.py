@@ -50,12 +50,12 @@ def test_generate_model_writes_domain_package_and_registers(tmp_path: Path) -> N
     assert "Users" in manifest and "models=(" in manifest
 
 
-def test_generate_service_routes_view_into_same_domain(tmp_path: Path) -> None:
+def test_generate_service_route_view_into_same_domain(tmp_path: Path) -> None:
     app = _make_app(tmp_path)
-    for artifact in ("service", "routes", "view"):
+    for artifact in ("service", "route", "view"):
         assert _run_in(app, ["generate", artifact, "orders"]) == 0
     assert (app / "orders" / "service.py").is_file()
-    assert (app / "orders" / "routes.py").is_file()
+    assert (app / "orders" / "routes.py").is_file()  # artifact 'route' -> file routes.py
     assert (app / "orders" / "view.py").is_file()
 
 
