@@ -1,19 +1,18 @@
-"""``DataFilter`` — a reusable multi-field filter component (ui-view-components).
+"""``DataFilter`` — the multi-field filter shell (ui-view-components).
 
-A ``filter_list`` icon button toggles an expandable region (rendered BELOW the search row) that
-shows the currently-active conditions as **removable chips** plus an add-condition builder (each
-row: field + operator + value). The query engine reads ``f_<field>_<op>=value`` params, so Apply
-hx-GETs the list region with every condition's composed param; a removed chip drops its param.
+A ``filter_list`` icon toggles a below-search panel holding the active filter conditions (each an
+editable ServiceNow-style row) + an add-condition control + Apply. The condition ROWS are
+``DataFilterCondition`` components the CALLER composes and passes in (component isolation —
+DataFilter never imports another component); DataFilter owns only the shell, toggle, and Apply form.
 
-Pure presentation (the ``Component`` contract: ``render() -> Raw``, composes via ``tag``, imports
-only ``component`` + ``html``). The dynamic add/remove + per-field operators are driven by
-``datatable-filter.js``. Active conditions are pre-rendered (chips + hidden params) so a region
-swap re-applies them without JS.
+Pure presentation (the ``Component`` contract). Apply hx-GETs the list region with every row's
+composed ``f_<field>_<op>=value`` param (``datatable-filter.js`` composes the value name); a removed
+row drops its param. The ``template_row`` is a hidden prototype the JS clones on "Add condition".
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Sequence
 from typing import Any
 
 from moderatorim.ui.component import Component
@@ -22,140 +21,65 @@ from moderatorim.ui.html import Raw, tag
 _DEFAULT_REGION = "mim-list-region"
 
 
-@dataclass(frozen=True, kw_only=True)
-class FilterField:
-    """One filter-able field: its key, header label, and the operator tokens valid for its type."""
-
-    key: str
-    label: str
-    ops: tuple[str, ...]
-
-
-@dataclass(frozen=True, kw_only=True)
-class FilterState:
-    """Multi-field filter state. ``fields`` are the pickable columns (each with its own operator
-    set); ``active`` are the applied conditions as ``(field, op, value)`` triples."""
-
-    fields: tuple[FilterField, ...] = ()
-    active: tuple[tuple[str, str, str], ...] = ()
-
-
 class DataFilter(Component):
-    """The multi-field filter control: an icon trigger + a collapsible below-search region with
-    removable active-condition chips and an add-condition builder."""
+    """The filter shell: an icon trigger + a collapsible below-search panel of editable condition
+    rows (pre-built ``DataFilterCondition`` components) + Add + Apply.
+
+    ``rows`` are the active conditions (one pre-filled row each; empty tuple → one blank starter is
+    the caller's job or the template is cloned). ``template_row`` is the blank prototype cloned by
+    the JS when adding a condition. ``row_path`` is only used to hint the JS; the rows carry their
+    own hx wiring.
+    """
 
     def __init__(
-        self, state: FilterState, *, base_path: str = "", region_id: str = _DEFAULT_REGION
+        self,
+        rows: Sequence[Component | Raw | str],
+        *,
+        template_row: Component | Raw | str = "",
+        base_path: str = "",
+        region_id: str = _DEFAULT_REGION,
+        has_fields: bool = True,
     ) -> None:
-        self.state = state
+        self.rows = tuple(rows)
+        self.template_row = template_row
         self.base_path = base_path
         self.region_id = region_id
-
-    def _ops_catalogue(self) -> str:
-        return ";".join(f"{ff.key}:{','.join(ff.ops)}" for ff in self.state.fields)
-
-    def _label_for(self, key: str) -> str:
-        return next((ff.label for ff in self.state.fields if ff.key == key), key)
-
-    def _chip(self, fld: str, op: str, val: str) -> Any:
-        """A removable chip for one active condition. Carries a hidden input with the composed
-        ``f_<field>_<op>`` name so the condition re-submits on Apply; the ✕ removes the chip."""
-        return tag(
-            "span",
-            tag("span", f"{self._label_for(fld)} {op} {val}", **{"class": "mim-filter-chip-text"}),
-            tag(
-                "button",
-                tag("i", "close"),
-                **{"type": "button", "class": "mim-filter-chip-remove", "title": "Remove"},
-            ),
-            tag("input", **{"type": "hidden", "name": f"f_{fld}_{op}", "value": val}),
-            **{"class": "chip small mim-filter-chip"},
-        )
-
-    def _condition_row(self, selected: tuple[str, str, str] | None = None) -> Any:
-        """One field+op+value builder row. field/op are chosen client-side; the JS composes the
-        value input's ``f_<field>_<op>`` name on change/submit."""
-        f = self.state
-        sel_field, sel_op, sel_val = selected or ("", "", "")
-        field_opts = [
-            tag(
-                "option",
-                ff.label,
-                **(
-                    {"value": ff.key, "selected": "selected"}
-                    if ff.key == sel_field
-                    else {"value": ff.key}
-                ),
-            )
-            for ff in f.fields
-        ]
-        current = next(
-            (ff for ff in f.fields if ff.key == sel_field), f.fields[0] if f.fields else None
-        )
-        op_opts = []
-        if current:
-            for op in current.ops:
-                op_opts.append(
-                    tag(
-                        "option",
-                        op,
-                        **(
-                            {"value": op, "selected": "selected"} if op == sel_op else {"value": op}
-                        ),
-                    )
-                )
-        return tag(
-            "div",
-            tag("select", *field_opts, **{"class": "mim-filter-field"}),
-            tag("select", *op_opts, **{"class": "mim-filter-op"}),
-            tag("input", **{"type": "text", "class": "mim-filter-value", "value": sel_val}),
-            tag(
-                "button",
-                tag("i", "close"),
-                **{"type": "button", "class": "button transparent circle small mim-filter-remove"},
-            ),
-            **{"class": "mim-filter-row"},
-        )
+        self.has_fields = has_fields
 
     def render(self) -> Raw:
-        f = self.state
-        if not f.fields:
+        if not self.has_fields:
             return Raw("")
 
-        # Active conditions as removable chips (each carries its hidden f_field_op param).
-        chips = [self._chip(fld, op, val) for fld, op, val in f.active]
-        chip_bar = tag("div", *chips, **{"class": "mim-filter-chips"})
-
-        # The add-condition builder: an empty row + Add + Apply.
+        rows_box = tag("div", *self.rows, **{"class": "mim-filter-rows"})
+        controls = tag(
+            "div",
+            tag(
+                "button",
+                tag("i", "add"),
+                " Add condition",
+                **{"type": "button", "class": "button border small mim-filter-add"},
+            ),
+            tag(
+                "button",
+                "Apply",
+                **{"type": "submit", "class": "button small mim-filter-apply"},
+            ),
+            **{"class": "mim-filter-controls"},
+        )
         builder = tag(
             "div",
-            tag("div", self._condition_row(), **{"class": "mim-filter-rows"}),
-            tag(
-                "div",
-                tag(
-                    "button",
-                    tag("i", "add"),
-                    " Add condition",
-                    **{"type": "button", "class": "button border small mim-filter-add"},
-                ),
-                tag(
-                    "button",
-                    "Apply",
-                    **{"type": "submit", "class": "button small mim-filter-apply"},
-                ),
-                **{"class": "mim-filter-controls"},
-            ),
-            **{
-                "class": "mim-filter-builder",
-                "data-region": self.region_id,
-                "data-ops": self._ops_catalogue(),
-            },
+            rows_box,
+            controls,
+            **{"class": "mim-filter-builder", "data-region": self.region_id},
         )
+        form_children: list[Any] = [builder]
+        if self.template_row:
+            form_children.append(
+                tag("template", self.template_row, **{"class": "mim-filter-template"})
+            )
         form = tag(
             "form",
-            chip_bar,
-            builder,
-            tag("template", self._condition_row(), **{"class": "mim-filter-template"}),
+            *form_children,
             **{
                 "hx-get": self.base_path,
                 "hx-target": f"#{self.region_id}",
@@ -165,8 +89,7 @@ class DataFilter(Component):
         )
 
         # A button trigger (stays inline in the toolbar) + a SEPARATE full-width panel that toggles
-        # open below the toolbar controls. Kept as siblings so opening the panel never moves the
-        # icon. `datatable-filter.js` toggles `.active` on the panel via the trigger's data hook.
+        # open below the toolbar controls (datatable-filter.js toggles `.active`).
         trigger = tag(
             "button",
             tag("i", "filter_list"),

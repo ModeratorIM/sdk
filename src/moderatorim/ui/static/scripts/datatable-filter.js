@@ -1,65 +1,50 @@
-// ModeratorIM multi-field filter builder for the DataTable (ui-view-components). A
-// `.mim-filter-builder` holds `.mim-filter-row`s, each a field <select>, an operator <select> and
-// a value <input>; the query engine reads `f_<field>_<op>=value`, so on any change we recompose the
-// value input's `name` to `f_<field>_<op>` and repopulate the operator select from the chosen
-// field's allowed ops. "+ Add condition" clones the `<template class="mim-filter-template">` row;
-// the ✕ removes its row. Apply is a normal htmx form GET — the composed names ride along.
+// ModeratorIM filter builder for the DataTable (ui-view-components). Each `.mim-filter-row` is a
+// ServiceNow-style [field ▾][operator ▾][typed value] row. CHANGING THE FIELD is an htmx round-trip
+// (the field <select> carries hx-get; the server re-renders the row typed for the new field via
+// render_column) — the JS does NOT rebuild inputs or operators. The query engine reads
+// `f_<field>_<op>=value`, so on op-change / submit we compose the value control's submit `name` to
+// `f_<field>_<op>`. The value control lives INSIDE `.mim-filter-value` (a wrapper the server emits
+// around whatever render_column produced). "+ Add condition" clones the template row; ✕ removes.
 //
-// Swap-safe like form-tabs.js: everything is DELEGATED on document (the htmx region swap destroys
-// one-shot listeners), and per-field operators come from the builder's `data-ops`
-// ("field:op,op;field:op,op") so no per-row catalogue is needed.
+// Swap-safe like form-tabs.js: everything is DELEGATED on document (an htmx swap destroys one-shot
+// listeners).
 (function () {
   "use strict";
 
-  function opsFor(builder, fieldKey) {
-    var spec = builder.getAttribute("data-ops") || "";
-    var groups = spec.split(";");
-    for (var i = 0; i < groups.length; i++) {
-      var parts = groups[i].split(":");
-      if (parts[0] === fieldKey) return parts[1] ? parts[1].split(",") : [];
-    }
-    return [];
+  // The actual form control (input/select/textarea) inside a row's value wrapper.
+  function valueControl(row) {
+    var wrap = row.querySelector(".mim-filter-value");
+    return wrap ? wrap.querySelector("input, select, textarea") : null;
   }
 
-  function syncRow(row) {
-    var builder = row.closest(".mim-filter-builder");
-    if (!builder) return;
+  // Compose the value control's submit name to f_<field>_<op> so the query engine sees it.
+  function composeName(row) {
     var fieldSel = row.querySelector(".mim-filter-field");
     var opSel = row.querySelector(".mim-filter-op");
-    var valInput = row.querySelector(".mim-filter-value");
-    if (!fieldSel || !opSel || !valInput) return;
-    var fieldKey = fieldSel.value;
-    // Repopulate the operator select for this field, preserving the current choice if still valid.
-    var want = opSel.value;
-    var ops = opsFor(builder, fieldKey);
-    opSel.innerHTML = "";
-    for (var i = 0; i < ops.length; i++) {
-      var o = document.createElement("option");
-      o.value = ops[i];
-      o.textContent = ops[i];
-      if (ops[i] === want) o.selected = true;
-      opSel.appendChild(o);
-    }
-    // Compose the value input's submit name so the server sees f_<field>_<op>=value.
-    if (fieldKey && opSel.value) {
-      valInput.name = "f_" + fieldKey + "_" + opSel.value;
+    var ctrl = valueControl(row);
+    if (!fieldSel || !opSel || !ctrl) return;
+    var field = fieldSel.value;
+    var op = opSel.value;
+    if (field && op) {
+      ctrl.name = "f_" + field + "_" + op;
     } else {
-      valInput.removeAttribute("name");
+      ctrl.removeAttribute("name");
     }
   }
 
   document.addEventListener("change", function (evt) {
     var t = evt.target;
     if (!t.closest) return;
-    if (t.classList.contains("mim-filter-field") || t.classList.contains("mim-filter-op")) {
+    // Field change is handled by htmx (re-renders the row); we only recompose on OPERATOR change.
+    if (t.classList.contains("mim-filter-op")) {
       var row = t.closest(".mim-filter-row");
-      if (row) syncRow(row);
+      if (row) composeName(row);
     }
   });
 
   document.addEventListener("click", function (evt) {
     if (!evt.target.closest) return;
-    // Filters panel toggle (button + separate full-width panel; not a native <details>).
+    // Filters panel toggle (button + separate full-width panel).
     var filtTrigger = evt.target.closest("[data-mim-filter-toggle]");
     if (filtTrigger) {
       evt.preventDefault();
@@ -68,7 +53,7 @@
       if (panel) panel.classList.toggle("active");
       return;
     }
-    // Columns Beer popup menu toggle.
+    // Columns popup toggle.
     var colTrigger = evt.target.closest("[data-mim-columns-toggle]");
     if (colTrigger) {
       evt.preventDefault();
@@ -77,27 +62,23 @@
       if (menu) menu.classList.toggle("active");
       return;
     }
-    // Remove an active-condition chip (drops its hidden f_field_op param on next Apply/submit).
-    var chipRm = evt.target.closest(".mim-filter-chip-remove");
-    if (chipRm) {
-      evt.preventDefault();
-      var chip = chipRm.closest(".mim-filter-chip");
-      if (chip) chip.remove();
-      return;
-    }
+    // Add a condition: clone the template row.
     var add = evt.target.closest(".mim-filter-add");
     if (add) {
       evt.preventDefault();
-      var details = add.closest(".mim-list-filters");
-      var tpl = details && details.querySelector(".mim-filter-template");
-      var rows = details && details.querySelector(".mim-filter-rows");
+      var box = add.closest(".mim-list-filters");
+      var tpl = box && box.querySelector(".mim-filter-template");
+      var rows = box && box.querySelector(".mim-filter-rows");
       if (tpl && rows && tpl.content) {
         var clone = tpl.content.firstElementChild.cloneNode(true);
         rows.appendChild(clone);
-        syncRow(clone);
+        // htmx must (re)process the clone so the field <select>'s hx-get is live.
+        if (window.htmx && window.htmx.process) window.htmx.process(clone);
+        composeName(clone);
       }
       return;
     }
+    // Remove a condition row (keep at least one).
     var rm = evt.target.closest(".mim-filter-remove");
     if (rm) {
       evt.preventDefault();
@@ -106,18 +87,17 @@
       if (r && container && container.querySelectorAll(".mim-filter-row").length > 1) {
         r.remove();
       } else if (r) {
-        // keep at least one row; just clear its value
-        var v = r.querySelector(".mim-filter-value");
-        if (v) v.value = "";
+        var c = valueControl(r);
+        if (c) c.value = "";
       }
     }
   });
 
-  // On submit, make sure every row's name is composed (a row never changed still needs its name).
+  // On submit, compose every row's value name (a row never touched still needs its name).
   document.addEventListener("submit", function (evt) {
     var form = evt.target;
     if (!form.classList || !form.classList.contains("mim-filter-form")) return;
     var rows = form.querySelectorAll(".mim-filter-row");
-    for (var i = 0; i < rows.length; i++) syncRow(rows[i]);
+    for (var i = 0; i < rows.length; i++) composeName(rows[i]);
   });
 })();

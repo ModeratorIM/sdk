@@ -17,7 +17,8 @@ from moderatorim.ui.button import Button
 from moderatorim.ui.card import Card
 from moderatorim.ui.component import Component
 from moderatorim.ui.datacolumns import ColumnOption, DataColumns
-from moderatorim.ui.datafilter import DataFilter, FilterField, FilterState
+from moderatorim.ui.datafilter import DataFilter
+from moderatorim.ui.datafiltercondition import ConditionField, DataFilterCondition
 from moderatorim.ui.datatable import (
     Column,
     DataRow,
@@ -56,13 +57,13 @@ __all__ = [
     "Card",
     "Column",
     "ColumnOption",
+    "ConditionField",
     "DataColumns",
     "DataFilter",
+    "DataFilterCondition",
     "DataRow",
     "DataTable",
     "Field",
-    "FilterField",
-    "FilterState",
     "Grid",
     "Header",
     "Icon",
