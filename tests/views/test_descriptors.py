@@ -345,6 +345,55 @@ def test_pageroute_bundle_and_collect() -> None:
     assert by[("/widgets/define", "POST")].permissions == ("shop.widget.create",)
 
 
+def test_collect_bundle_dedups_form_declared_by_sibling_viewroutes() -> None:
+    # A generated Form is declared by TWO sibling ViewRoutes — /new and /{id} — pointing at the same
+    # FormView. collect_bundle must expand the form set ONCE (dedup by base path), exactly as a
+    # single app.mount(all_views) call did. Regression: expanding each view in its own mount() pass
+    # gave each a fresh seen_form_base and registered the whole form set twice (found dogfooding the
+    # admin app in declarative-routes Stage 3).
+    from moderatorim.sdk import (
+        App,
+        Field,
+        FieldType,
+        FormFields,
+        FormView,
+        ListView,
+        PageRoute,
+        PageView,
+        TableColumn,
+        TableModel,
+        ViewRoute,
+    )
+
+    Widget = TableModel(
+        name="shop_widget",
+        columns=(TableColumn(name="name", type=FieldType.TEXT, display=True),),
+    )
+    list_pv = PageView(model=Widget, view=ListView(fields=(Field("name"),)))
+    form_pv = PageView(model=Widget, view=FormView(tabs=(FormFields(fields=(Field("name"),)),)))
+    bundle = PageRoute(
+        views=(
+            ViewRoute(path="/widgets", view=list_pv),
+            ViewRoute(path="/widgets/new", view=form_pv),
+            ViewRoute(path="/widgets/{id}", view=form_pv),
+        ),
+        permission="shop.widget",
+    )
+
+    app = App()
+    app.collect_bundle(bundle)
+    from collections import Counter
+
+    counts = Counter((r.path, r.methods) for r in app.routes)
+    dups = {k: v for k, v in counts.items() if v > 1}
+    assert not dups, f"form set expanded more than once: {dups}"
+    # per-verb gate intact after dedup: /new → .create, /{id} POST → .update, delete → .delete
+    by = {(r.path, r.methods[0]): r for r in app.routes}
+    assert by[("/widgets/new", "POST")].permissions == ("shop.widget.create",)
+    assert by[("/widgets/{id}", "POST")].permissions == ("shop.widget.update",)
+    assert by[("/widgets/{id}/delete", "POST")].permissions == ("shop.widget.delete",)
+
+
 def test_legacy_pageroute_still_importable() -> None:
     # The OLD single-page PageRoute(path=, handler=) shape survives as LegacyPageRoute so in-flight
     # app imports keep working until Stage 3 migrates them to Route (declarative-routes design §2).

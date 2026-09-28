@@ -279,10 +279,13 @@ class App:
 
     def collect_bundle(self, bundle: Any) -> None:
         """Collect one :class:`~moderatorim.sdk.PageRoute` BUNDLE (declarative-routes §2): expand
-        each ``views`` entry via :meth:`expand_view_route` and each ``routes`` entry via
-        :meth:`expand_route`, threading the bundle's ``permission`` prefix + ``enrich`` hook."""
-        for vr in getattr(bundle, "views", ()):
-            self.expand_view_route(vr, permission=bundle.permission, enrich=bundle.enrich)
+        all ``views`` in ONE :meth:`mount` pass (so a Form declared by its sibling ``/new`` +
+        ``/{id}`` ViewRoutes is deduped by base path — expanding each view in isolation would
+        register the form set twice), and each ``routes`` entry via :meth:`expand_route`, threading
+        the bundle's ``permission`` prefix + ``enrich`` hook."""
+        views = tuple(getattr(bundle, "views", ()))
+        if views:
+            self.mount(views, permission=bundle.permission, enrich=bundle.enrich)
         for r in getattr(bundle, "routes", ()):
             self.expand_route(r, default_permission=bundle.permission)
 
