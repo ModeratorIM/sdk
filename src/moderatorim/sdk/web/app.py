@@ -44,6 +44,12 @@ class RouteDef:
     # attach computed fields (e.g. a role's grants from a link table) that a Field.custom cell then
     # renders. Mutates rows in place; core awaits it. Row-level escape hatch for cross-table data.
     enrich: Any = None
+    # Stamped by core at composition (moderatorim.core.app), not by the SDK expansion. `owner` = the
+    # unit that contributed this route (owner-scoped ctx.authz; None = core/admin, unrestricted).
+    # `private` = the owning unit's Manifest.private, so the adapter can 404 (not 403) an
+    # authenticated-but-unauthorized GET to conceal a private unit's existence.
+    owner: str | None = None
+    private: bool = False
     # SINGLE permission gate (declarative-routes, design §1): the ONE full permission key this route
     # REQUIRES; the caller's resolved permission set must contain it (None = ungated). To ACCESS a
     # record you need `.read`; each mutating route names its own capability (`.create`/`.update`/

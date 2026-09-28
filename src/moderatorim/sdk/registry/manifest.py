@@ -156,6 +156,14 @@ class Manifest:
     # principal. Core validates the "{app}" ownership prefix and seeds them (apps declare, core
     # decides) — the SDK only carries the declaration.
     system_users: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # When True, this unit is PRIVATE: an authenticated caller who lacks a route's required
+    # permission gets a 404 (Not Found) on a GET page instead of a 403 (Forbidden), so the unit's
+    # existence is CONCEALED — a logged-in low-privilege user cannot enumerate its pages (the
+    # GitHub/GitLab private-resource convention). Applies only to authenticated-but-unauthorized
+    # GET navigations; an UNAUTHENTICATED caller is still redirected to /signin, and an unauthorized
+    # MUTATION (POST/PATCH/DELETE) is still 403 (not a navigation, not enumerable by browsing).
+    # Default False = ordinary 403. Set True for a control-center app like admin.
+    private: bool = False
     # The optional route-recording hook. Historically imperative: ``routes(app) -> None`` mutates
     # the passed SDK App (``app.mount(...)`` / the ``@app.page``/``@app.action``/``@app.post``
     # decorators). The declarative-routes migration (design §2c, Option A) widens it so a unit's
