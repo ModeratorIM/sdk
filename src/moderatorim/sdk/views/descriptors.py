@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from moderatorim.sdk.models.field import TableColumn
@@ -281,41 +282,105 @@ class PageView:
 
 @dataclass(frozen=True, slots=True)
 class ViewRoute:
-    """A ``routes.py`` entry mapping a path to a :class:`PageView` + its RBAC gate.
+    """One GENERATED model-driven route: a path bound to a :class:`PageView` (model + view); NO
+    handler — core expands it into the query→store→render flow. Each expanded sub-route (list GET,
+    ``/new``, ``/{id}`` update, ``/{id}/delete``) declares its OWN full permission via
+    ``permissions`` — no verb is inferred.
 
     Named ``ViewRoute`` (not ``Route``) so it never collides with the web framework's route type in
     core. Core resolves new-vs-edit from the path shape (``/x`` list, ``/x/new`` create, ``/x/{id}``
     edit) — see the routing framework.
+
+    GATE — ``permissions``: the app/system-level capabilities this route REQUIRES, declared in FULL
+    (e.g. ``("admin.users.read",)``). Enforced ALL-OF: the caller's RESOLVED permission set (derived
+    from the roles granted to it) must contain EVERY listed key. Empty ⇒ ungated (public).
+    Permissions are a fact about the ROUTE, declared at code-time; ROLES (user-level bundles of
+    permissions) are NOT declared here — they are granted to groups/users at RUNTIME in RBAC data.
+    A viewer is denied ``/new`` or delete simply by NOT holding ``admin.users.create`` /
+    ``admin.users.delete``.
     """
 
     path: str
     view: PageView
-    roles: tuple[str, ...] = ()
+    permissions: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.path:
             raise ValueError("ViewRoute.path must be non-empty")
 
 
+class RouteMethod(StrEnum):
+    """The HTTP method a :class:`Route` serves. A ``StrEnum`` (Python 3.11+): each member compares
+    and serializes AS its string (``RouteMethod.GET == "GET"``), so it passes straight to the
+    framework boundary (Starlette ``methods=[route.method]``) with no conversion — type safety at
+    the authoring layer, a plain string at the framework seam. ``GET`` = a page (returns a Page);
+    ``POST`` = a mutation / re-render (returns Redirect | Rendered)."""
+
+    GET = "GET"
+    POST = "POST"
+
+
+@dataclass(frozen=True, slots=True)
+class Route:
+    """One CUSTOM route: a ``path`` served by a hand-written ``handler``. GET (returns a
+    :class:`~moderatorim.sdk.Page`) or POST (returns a :class:`~moderatorim.sdk.Redirect` /
+    :class:`~moderatorim.sdk.Rendered`), selected by ``method``. Replaces ``@app.page`` /
+    ``@app.action`` / ``@app.post`` and the old standalone ``PageRoute`` / :class:`RouteAction` —
+    one item object, method-driven, so a domain's ``routes.py`` is a uniform tuple of declarations.
+
+    * ``path`` — the URL path (must be non-empty).
+    * ``handler`` — an ``async (ctx) -> Page | Redirect | Rendered`` callable (required).
+    * ``method`` — :class:`RouteMethod`. ``GET`` renders a page; ``POST`` performs a mutation /
+      in-place re-render. One Route = one method.
+    * ``title`` — GET pages only: the document ``<title>``.
+    * ``nav`` — GET pages only: contribute a gate-aware left-rail nav entry (shown when the gate
+      passes).
+    * ``permissions`` — the GATE.
+
+    GATE — ``permissions``: the app/system-level capabilities this route REQUIRES, declared in FULL
+    (e.g. ``("admin.users.create",)``). Enforced ALL-OF: the caller must hold EVERY listed
+    permission — its RESOLVED permission set (derived from the roles granted to it) must be a
+    superset. Empty ⇒ ungated (public, e.g. ``/signin``). Permissions are a fact about the ROUTE,
+    declared at code-time; ROLES (user-level bundles of permissions) are NOT declared here — they
+    are granted to groups/users at RUNTIME in RBAC data (users→groups→roles→permissions). A viewer
+    is denied ``/new`` or delete simply by NOT holding ``admin.users.create`` /
+    ``admin.users.delete``. There is no method→verb inference (the old ``_derive_key`` behaviour is
+    removed): the required capability is always explicit in ``permissions``.
+    """
+
+    path: str
+    handler: object  # async (ctx) -> Page | Redirect | Rendered
+    method: RouteMethod = RouteMethod.GET
+    title: str | None = None
+    nav: str | None = None
+    permissions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.path:
+            raise ValueError("Route.path must be non-empty")
+        if self.handler is None:
+            raise ValueError("Route.handler is required")
+
+
 @dataclass(frozen=True, slots=True)
 class RouteAction:
-    """A ``routes.py`` entry declaring a STANDALONE route-action (design §1) — a POST endpoint at
-    ``path`` invoking ``handler``, NOT attached to a generated form's record (the ``@app.action``
-    kind).
+    """DEPRECATED thin alias-shape of ``Route(method=RouteMethod.POST)``, kept for one release so
+    existing ``RouteAction(...)`` callers keep importing and constructing while apps migrate
+    (design §4; full removal is Stage 4). Prefer :class:`Route` with ``method=RouteMethod.POST``.
 
-    Named ``RouteAction`` (not ``Action``) so it never collides with the bus/event ``Action``. It is
-    the declarative form of ``@app.action``: put these in an app's ``actions.py`` as a tuple and
-    hand them to ``App.mount(actions=…)`` alongside the ``ViewRoute`` table. Distinct from
-    :class:`FormAction`, a button INSIDE a form (bound to a record at ``{base}/{id}/action``); a
-    ``RouteAction`` is a page-level mutation at its own path (e.g. ``/admin/roles/define``).
+    A STANDALONE route-action: a POST endpoint at ``path`` invoking ``handler``, NOT attached to a
+    generated form's record. Distinct from :class:`FormAction`, a button INSIDE a form (bound to a
+    record at ``{base}/{id}/action``); a ``RouteAction`` is a page-level mutation at its own path
+    (e.g. ``/admin/roles/define``).
 
-    Gating: ``roles`` (route role gate, §1b L2) when set, else ``permission`` (the CRUD prefix).
+    GATE — ``permissions`` (ALL-OF, full keys), the same model as :class:`Route`. The legacy
+    ``permission`` / ``roles`` gate fields are GONE — a POST action declares its full required
+    capability in ``permissions``.
     """
 
     path: str
     handler: object  # a callable (ctx) -> Redirect|Rendered, like an @app.action body
-    permission: str | None = None
-    roles: tuple[str, ...] = ()
+    permissions: tuple[str, ...] = ()
     methods: tuple[str, ...] = ("POST",)
 
     def __post_init__(self) -> None:
@@ -327,19 +392,42 @@ class RouteAction:
 
 @dataclass(frozen=True, slots=True)
 class PageRoute:
-    """A ``routes.py`` entry declaring a CUSTOM GET page (design §7.4) — a ``path`` served by a
-    hand-written ``handler`` returning a :class:`~moderatorim.sdk.Page`, NOT a generated view.
+    """A domain's ROUTE BUNDLE — the declarative replacement for ``app.mount(...)``. Groups the
+    generated ``views`` (:class:`ViewRoute`) + custom ``routes`` (:class:`Route`) + the default
+    resource ``permission`` prefix (+ an optional ``enrich`` hook for the views' lists). A domain's
+    ``register()`` RETURNS one; core collects it and expands every item. Pure declaration — no
+    ``app`` handle, no imperative call.
 
-    Named ``PageRoute`` for parity with :class:`ViewRoute`/:class:`RouteAction`. It is the
-    declarative form of ``@app.page``: put these in an app's ``routes.py`` (or ``pages.py``) as a
-    tuple and hand them to ``App.mount(pages=…)`` so ``routes.py`` is uniformly tuples of
-    declaration objects with no decorators. The escape hatch for a screen the view generator
-    cannot express (a static dashboard, a bespoke authz form) — everything a model-driven screen
-    can express should stay a :class:`ViewRoute`.
+    * ``views`` — generated model-driven routes (:class:`ViewRoute`).
+    * ``routes`` — custom hand-written routes (:class:`Route`).
+    * ``permission`` — the default resource permission PREFIX for this bundle (documentation /
+      grouping; e.g. ``"admin.roles"``). Not a gate itself — each route declares its own
+      ``permissions``.
+    * ``enrich`` — optional ``async (ctx, rows) -> None`` hook applied to the bundle's list views
+      (attach per-row computed data before render).
 
-    Gating: ``roles`` (route role gate, §1b L2) when set, else ``permission`` (a full permission
-    key checked at the route). ``title`` sets the page title; ``nav`` (when set) contributes a nav
-    entry shown only when the gate passes — same as the ``@app.page`` keywords.
+    NOTE: this REPURPOSES the name ``PageRoute`` (was: a single custom GET page). Every old
+    ``PageRoute(path=, handler=)`` becomes a :class:`Route` ``(path=, handler=)``; ``PageRoute``
+    graduates to the bundle. During the migration the OLD single-page class stays importable as
+    :class:`LegacyPageRoute` (temporary; removed once apps are migrated in Stage 3) so no in-flight
+    app import breaks.
+    """
+
+    views: tuple[ViewRoute, ...] = ()
+    routes: tuple[Route, ...] = ()
+    permission: str | None = None  # default resource prefix (documentation/grouping)
+    enrich: object | None = None  # optional async (ctx, rows) -> None for views' lists
+
+
+@dataclass(frozen=True, slots=True)
+class LegacyPageRoute:
+    """TEMPORARY compatibility shim for the OLD single-page ``PageRoute(path=, handler=)`` (a custom
+    GET page), preserved only so app code importing the old shape keeps working until Stage 3
+    migrates every call site to :class:`Route`. DO NOT use in new code — declare a :class:`Route`
+    instead. Removed in Stage 3/4 once no caller remains.
+
+    Gating: ``roles`` (legacy route role gate) when set, else ``permission`` (a full permission key
+    checked at the route). ``title`` sets the page title; ``nav`` contributes a nav entry.
     """
 
     path: str
@@ -351,6 +439,6 @@ class PageRoute:
 
     def __post_init__(self) -> None:
         if not self.path:
-            raise ValueError("PageRoute.path must be non-empty")
+            raise ValueError("LegacyPageRoute.path must be non-empty")
         if self.handler is None:
-            raise ValueError("PageRoute.handler is required")
+            raise ValueError("LegacyPageRoute.handler is required")

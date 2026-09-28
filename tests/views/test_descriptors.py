@@ -62,10 +62,11 @@ def test_pageview_requires_model_and_view() -> None:
         PageView(model=object(), view=None)
 
 
-def test_viewroute_binds_path_view_roles() -> None:
+def test_viewroute_binds_path_view_permissions() -> None:
     pv = PageView(model=object(), view=ListView())
-    r = ViewRoute(path="/users", view=pv, roles=("admin.users.read",))
-    assert r.path == "/users" and r.roles == ("admin.users.read",) and r.view is pv
+    r = ViewRoute(path="/users", view=pv, permissions=("admin.users.read",))
+    assert r.path == "/users" and r.permissions == ("admin.users.read",) and r.view is pv
+    assert ViewRoute(path="/x", view=pv).permissions == ()  # empty = public
     with pytest.raises(ValueError, match="path"):
         ViewRoute(path="", view=pv)
 
@@ -161,7 +162,7 @@ def test_list_view_row_actions_default_and_off() -> None:
     assert ListView(row_actions=False).row_actions is False  # read-only list opts out
 
 
-def test_app_mount_expands_viewroutes_with_roles() -> None:
+def test_app_mount_expands_viewroutes_with_permissions() -> None:
     from moderatorim.sdk import (
         App,
         Field,
@@ -191,18 +192,18 @@ def test_app_mount_expands_viewroutes_with_roles() -> None:
     app = App()
     app.mount(
         (
-            ViewRoute(path="/widgets", view=list_pv, roles=("shop.viewer",)),
-            ViewRoute(path="/widgets/new", view=form_pv, roles=("shop.manager",)),
-            ViewRoute(path="/widgets/{id}", view=form_pv, roles=("shop.viewer",)),
+            ViewRoute(path="/widgets", view=list_pv, permissions=("shop.widget.read",)),
+            ViewRoute(path="/widgets/new", view=form_pv, permissions=("shop.widget.create",)),
+            ViewRoute(path="/widgets/{id}", view=form_pv, permissions=("shop.widget.read",)),
         )
     )
     by = {(r.path, r.methods[0]): r for r in app.routes}
-    # List binding → Kind.LIST gated by its roles
+    # List binding → Kind.LIST gated by its ALL-OF permissions
     assert by[("/widgets", "GET")].kind is Kind.LIST
-    assert by[("/widgets", "GET")].roles == ("shop.viewer",)
-    # Form bindings dedupe to one form route-set (5 routes), all carrying the mount roles
+    assert by[("/widgets", "GET")].permissions == ("shop.widget.read",)
+    # Form bindings dedupe to one form route-set (5 routes), all carrying the mount permissions
     assert by[("/widgets/new", "GET")].kind is Kind.FORM
-    assert by[("/widgets/new", "GET")].roles == ("shop.manager",)
+    assert by[("/widgets/new", "GET")].permissions == ("shop.widget.create",)
     # exactly one form set (deduped): 5 form routes for the base
     form_routes = [r for r in app.routes if r.kind is Kind.FORM]
     assert len(form_routes) == 5
@@ -219,8 +220,10 @@ def test_route_action_and_mount_actions() -> None:
     async def define_role(ctx):  # noqa: ANN001, ANN202
         return None
 
-    ra = RouteAction(path="/admin/roles/define", handler=define_role, permission="admin.roles")
-    assert ra.methods == ("POST",) and ra.permission == "admin.roles"
+    ra = RouteAction(
+        path="/admin/roles/define", handler=define_role, permissions=("admin.roles.create",)
+    )
+    assert ra.methods == ("POST",) and ra.permissions == ("admin.roles.create",)
     with pytest.raises(ValueError, match="path"):
         RouteAction(path="", handler=define_role)
     with pytest.raises(ValueError, match="handler"):
@@ -230,34 +233,136 @@ def test_route_action_and_mount_actions() -> None:
     app.mount((), actions=(ra,))
     rd = next(r for r in app.routes if r.path == "/admin/roles/define")
     assert rd.kind is Kind.ACTION and rd.methods == ("POST",)
-    assert rd.handler is define_role and rd.permission == "admin.roles"
-
-    # a role-gated RouteAction carries its roles= onto the RouteDef
-    app2 = App()
-    app2.mount((), actions=(RouteAction(path="/x", handler=define_role, roles=("r1",)),))
-    assert app2.routes[0].roles == ("r1",)
+    assert rd.handler is define_role and rd.permissions == ("admin.roles.create",)
 
 
-def test_page_route_and_mount_pages() -> None:
-    from moderatorim.sdk import App, Kind, PageRoute
+def test_route_descriptor_get_and_post() -> None:
+    from moderatorim.sdk import Route, RouteMethod
 
     async def home(ctx):  # noqa: ANN001, ANN202
         return None
 
-    pr = PageRoute(path="/admin", handler=home, title="Admin", permission="admin.users.read")
+    # RouteMethod is a StrEnum: compares/serializes as the plain HTTP verb.
+    assert RouteMethod.GET == "GET" and RouteMethod.POST == "POST"
+    assert str(RouteMethod.POST) == "POST"
+
+    # a GET page defaults method=GET and may carry title/nav + ALL-OF permissions
+    g = Route(path="/admin", handler=home, title="Admin", nav="Admin", permissions=("a.b.read",))
+    assert g.method is RouteMethod.GET and g.title == "Admin" and g.nav == "Admin"
+    assert g.permissions == ("a.b.read",)
+    # a POST action
+    p = Route(path="/admin/do", handler=home, method=RouteMethod.POST, permissions=("a.b.create",))
+    assert p.method is RouteMethod.POST and p.permissions == ("a.b.create",)
+    # empty permissions = public (e.g. /signin)
+    assert Route(path="/signin", handler=home).permissions == ()
+
+    with pytest.raises(ValueError, match="path"):
+        Route(path="", handler=home)
+    with pytest.raises(ValueError, match="handler"):
+        Route(path="/x", handler=None)
+
+
+def test_route_expands_get_page_and_post_action() -> None:
+    from moderatorim.sdk import App, Kind, Route, RouteMethod
+
+    async def page_h(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    async def act_h(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    app = App()
+    app.expand_route(
+        Route(path="/admin", handler=page_h, title="Admin", nav="Admin", permissions=("a.b.read",))
+    )
+    app.expand_route(
+        Route(path="/admin/do", handler=act_h, method=RouteMethod.POST, permissions=("a.b.create",))
+    )
+    by = {(r.path, r.methods[0]): r for r in app.routes}
+    # GET → Kind.PAGE, title/nav carried, ALL-OF permissions gate
+    pg = by[("/admin", "GET")]
+    assert pg.kind is Kind.PAGE and pg.title == "Admin" and pg.nav == "Admin"
+    assert pg.permissions == ("a.b.read",)
+    # POST → Kind.ACTION, no title/nav, its own permission
+    ac = by[("/admin/do", "POST")]
+    assert ac.kind is Kind.ACTION and ac.title is None and ac.nav is None
+    assert ac.permissions == ("a.b.create",)
+
+
+def test_pageroute_bundle_and_collect() -> None:
+    from moderatorim.sdk import (
+        App,
+        Field,
+        FieldType,
+        Kind,
+        ListView,
+        PageRoute,
+        PageView,
+        Route,
+        RouteMethod,
+        TableColumn,
+        TableModel,
+        ViewRoute,
+    )
+    from moderatorim.sdk.web import as_bundle_tuple
+
+    async def define(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    Widget = TableModel(
+        name="shop_widget",
+        columns=(TableColumn(name="name", type=FieldType.TEXT, display=True),),
+    )
+    list_pv = PageView(model=Widget, view=ListView(fields=(Field("name"),)))
+
+    bundle = PageRoute(
+        views=(ViewRoute(path="/widgets", view=list_pv, permissions=("shop.widget.read",)),),
+        routes=(
+            Route(
+                path="/widgets/define",
+                handler=define,
+                method=RouteMethod.POST,
+                permissions=("shop.widget.create",),
+            ),
+        ),
+        permission="shop.widget",
+    )
+    # a bundle is pure data
+    assert bundle.permission == "shop.widget" and len(bundle.views) == 1 and len(bundle.routes) == 1
+
+    # as_bundle_tuple normalizes register() returns
+    assert as_bundle_tuple(bundle) == (bundle,)
+    assert as_bundle_tuple((bundle,)) == (bundle,)
+    assert as_bundle_tuple(None) == ()  # a still-imperative register(app) → nothing collected
+
+    # core collects the bundle: the ViewRoute expands to a List, the Route to a POST action
+    app = App()
+    app.collect_bundle(bundle)
+    by = {(r.path, r.methods[0]): r for r in app.routes}
+    assert by[("/widgets", "GET")].kind is Kind.LIST
+    assert by[("/widgets", "GET")].permissions == ("shop.widget.read",)
+    assert by[("/widgets/define", "POST")].kind is Kind.ACTION
+    assert by[("/widgets/define", "POST")].permissions == ("shop.widget.create",)
+
+
+def test_legacy_pageroute_still_importable() -> None:
+    # The OLD single-page PageRoute(path=, handler=) shape survives as LegacyPageRoute so in-flight
+    # app imports keep working until Stage 3 migrates them to Route (declarative-routes design §2).
+    from moderatorim.sdk import App, Kind, LegacyPageRoute
+
+    async def home(ctx):  # noqa: ANN001, ANN202
+        return None
+
+    pr = LegacyPageRoute(path="/admin", handler=home, title="Admin", permission="admin.users.read")
     assert pr.title == "Admin" and pr.permission == "admin.users.read" and pr.nav is None
     with pytest.raises(ValueError, match="path"):
-        PageRoute(path="", handler=home)
+        LegacyPageRoute(path="", handler=home)
     with pytest.raises(ValueError, match="handler"):
-        PageRoute(path="/x", handler=None)
+        LegacyPageRoute(path="/x", handler=None)
 
+    # App.mount(pages=) still accepts the legacy shape and records a Kind.PAGE route
     app = App()
     app.mount((), pages=(pr,))
     rd = next(r for r in app.routes if r.path == "/admin")
     assert rd.kind is Kind.PAGE and rd.methods == ("GET",)
     assert rd.handler is home and rd.title == "Admin" and rd.permission == "admin.users.read"
-
-    # a role-gated PageRoute carries its roles= onto the RouteDef, and nav= flows through
-    app2 = App()
-    app2.mount((), pages=(PageRoute(path="/x", handler=home, roles=("r1",), nav="X"),))
-    assert app2.routes[0].roles == ("r1",) and app2.routes[0].nav == "X"
