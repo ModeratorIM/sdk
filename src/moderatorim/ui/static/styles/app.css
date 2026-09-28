@@ -823,15 +823,18 @@ main.responsive {
    elevated, floating over the table). z-index above the sticky thead so borders never overlay it. */
 .mim-cols-editor { display: inline-block; position: relative; }
 .mim-cols-menu {
-  position: absolute; right: 0; top: 100%; z-index: 50; margin-top: 0.35rem; min-width: 13rem;
-  display: none; flex-direction: column; gap: 0.35rem; padding: var(--mim-view-pad);
+  position: absolute; right: 0; left: auto; top: 100%; z-index: 50;
+  margin: 0.35rem 0 0 0; padding: var(--mim-view-pad);
+  width: max-content; min-width: 12rem; max-width: 16rem;
+  display: none; flex-direction: column; gap: 0.35rem;
+  list-style: none;               /* it is a <menu>; drop UA/Beer list styling */
   background: var(--surface); color: var(--on-surface);
   border: 1px solid var(--outline-variant); border-radius: 0.6rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
 .mim-cols-menu.active { display: flex; }
 .mim-cols-form { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
-.mim-cols-item { display: flex; align-items: center; gap: 0.4rem; }
+.mim-cols-item { display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
 /* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
 .mim-list-table { width: 100%; border-collapse: collapse; }
 .mim-list-table thead th {
