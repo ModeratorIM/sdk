@@ -309,6 +309,68 @@ class ViewRoute:
             raise ValueError("ViewRoute.path must be non-empty")
 
 
+class PermissionAction(StrEnum):
+    """The CRUD capability a :class:`Permission` grants — the ``{action}`` segment of a permission
+    key. A ``StrEnum`` (Python 3.11+): each member compares and serializes AS its lowercase verb
+    (``PermissionAction.READ == "read"``), so a :class:`Permission` renders straight to the string
+    key core enforces.
+
+    DISTINCT from :class:`RouteMethod` (the HTTP transport): a permission's action is a capability
+    fact, not the wire verb. The two are not 1:1 — a ``GET`` create-form route needs
+    ``PermissionAction.CREATE``, and create/update/delete arrive over ``POST``/``PATCH``/``DELETE``
+    — so reusing the HTTP-method enum here would re-introduce the method→verb coupling the gate
+    model deliberately removed. Keep them separate: ``RouteMethod`` is transport,
+    ``PermissionAction`` is capability.
+    """
+
+    READ = "read"
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+
+
+@dataclass(frozen=True, slots=True)
+class Permission:
+    """A structured permission key — the typed, model-driven replacement for a hand-written dotted
+    string like ``"admin.users.create"``. Renders to that exact string via :meth:`__str__`, so it is
+    type-safe at the authoring layer and a plain key at the enforcement seam (the same pattern as
+    :class:`RouteMethod` passing straight to the framework).
+
+    The key is ``{source}.{resource}.{action}``:
+
+    * ``source`` — the declaring UNIT's name (its ``Manifest.name``): an app, backend, or platform
+      alike (e.g. ``"admin"``, ``"moderation"``). This is the ``{X}`` namespace segment; it is
+      DECLARED explicitly, never derived from the folder — a silently-derived prefix a developer
+      forgets is the same foot-gun as a hidden table prefix.
+    * ``resource`` — the thing acted on (e.g. ``"users"``).
+    * ``action`` — the CRUD :class:`PermissionAction` (``READ``/``CREATE``/``UPDATE``/``DELETE``).
+
+    A unit's full permission catalog generates itself instead of being hand-typed::
+
+        _PERMISSIONS = tuple(
+            Permission(source="admin", resource=r, action=a)
+            for r in ("users", "roles", "groups")
+            for a in PermissionAction
+        )
+
+    A :class:`Route` / :class:`ViewRoute` ``permission`` accepts a ``Permission`` or a bare ``str``;
+    core normalizes with ``str()`` and compares the rendered key, so enforcement is unchanged.
+    """
+
+    source: str
+    resource: str
+    action: PermissionAction
+
+    def __post_init__(self) -> None:
+        if not self.source:
+            raise ValueError("Permission.source must be non-empty (the declaring unit's name)")
+        if not self.resource:
+            raise ValueError("Permission.resource must be non-empty")
+
+    def __str__(self) -> str:
+        return f"{self.source}.{self.resource}.{self.action}"
+
+
 class RouteMethod(StrEnum):
     """The HTTP method a :class:`Route` serves. A ``StrEnum`` (Python 3.11+): each member compares
     and serializes AS its string (``RouteMethod.GET == "GET"``), so it passes straight to the

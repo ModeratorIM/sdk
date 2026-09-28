@@ -269,6 +269,51 @@ def test_route_descriptor_get_and_post() -> None:
         Route(path="/x", handler=None)
 
 
+def test_permission_object_renders_key_and_is_typed() -> None:
+    import pytest
+
+    from moderatorim.sdk import Permission, PermissionAction
+
+    # PermissionAction is a StrEnum of the CRUD verbs, DISTINCT from the HTTP-method RouteMethod.
+    assert PermissionAction.READ == "read" and PermissionAction.CREATE == "create"
+    assert PermissionAction.UPDATE == "update" and PermissionAction.DELETE == "delete"
+    assert [a.value for a in PermissionAction] == ["read", "create", "update", "delete"]
+
+    # __str__ renders the full {source}.{resource}.{action} key core enforces.
+    p = Permission(source="admin", resource="users", action=PermissionAction.CREATE)
+    assert str(p) == "admin.users.create"
+    assert f"gate={p}" == "gate=admin.users.create"
+
+    # frozen + value-equal
+    assert p == Permission(source="admin", resource="users", action=PermissionAction.CREATE)
+    with pytest.raises(Exception):  # noqa: B017 - frozen dataclass rejects assignment
+        p.resource = "roles"  # type: ignore[misc]
+
+    # source + resource must be non-empty (the declaring unit's namespace segment)
+    with pytest.raises(ValueError, match="source"):
+        Permission(source="", resource="users", action=PermissionAction.READ)
+    with pytest.raises(ValueError, match="resource"):
+        Permission(source="admin", resource="", action=PermissionAction.READ)
+
+
+def test_permission_catalog_generates_itself() -> None:
+    from moderatorim.sdk import Permission, PermissionAction
+
+    # The whole point: a unit's catalog is generated from resources × CRUD, not hand-typed strings.
+    catalog = tuple(
+        Permission(source="admin", resource=r, action=a)
+        for r in ("users", "roles", "groups")
+        for a in PermissionAction
+    )
+    keys = [str(p) for p in catalog]
+    assert len(keys) == 12
+    assert "admin.users.read" in keys and "admin.groups.delete" in keys
+    # a platform unit shares the exact shape — source is kind-agnostic
+    assert str(
+        Permission(source="moderation", resource="reports", action=PermissionAction.UPDATE)
+    ) == ("moderation.reports.update")
+
+
 def test_route_expands_get_page_and_post_action() -> None:
     from moderatorim.sdk import App, Kind, Route, RouteMethod
 

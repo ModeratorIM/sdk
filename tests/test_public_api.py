@@ -60,6 +60,8 @@ EXPECTED_PUBLIC_API = {
     "ListView",
     "PageView",
     "PageRoute",
+    "Permission",
+    "PermissionAction",
     "Route",
     "RouteMethod",
     "LegacyPageRoute",
