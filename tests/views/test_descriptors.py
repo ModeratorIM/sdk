@@ -220,21 +220,19 @@ def test_app_mount_expands_viewroutes_with_permissions() -> None:
     assert by[("/widgets", "GET")].resource_permission == "shop.widget"
 
 
-def test_route_action_and_mount_actions() -> None:
-    from moderatorim.sdk import App, Kind, RouteAction
+def test_mount_actions_records_post_route() -> None:
+    from moderatorim.sdk import App, Kind, Route, RouteMethod
 
     async def define_role(ctx):  # noqa: ANN001, ANN202
         return None
 
-    ra = RouteAction(
-        path="/admin/roles/define", handler=define_role, permission="admin.roles.create"
+    # A standalone route-action is a Route(method=POST); mount(actions=) records it as Kind.ACTION.
+    ra = Route(
+        path="/admin/roles/define",
+        handler=define_role,
+        method=RouteMethod.POST,
+        permission="admin.roles.create",
     )
-    assert ra.methods == ("POST",) and ra.permission == "admin.roles.create"
-    with pytest.raises(ValueError, match="path"):
-        RouteAction(path="", handler=define_role)
-    with pytest.raises(ValueError, match="handler"):
-        RouteAction(path="/x", handler=None)
-
     app = App()
     app.mount((), actions=(ra,))
     rd = next(r for r in app.routes if r.path == "/admin/roles/define")
@@ -315,7 +313,7 @@ def test_permission_catalog_generates_itself() -> None:
 
 
 def test_route_accepts_permission_object_normalized_to_key() -> None:
-    # A Route/ViewRoute/RouteAction may declare permission= as a Permission OBJECT or a bare string;
+    # A Route/ViewRoute may declare permission= as a Permission OBJECT or a bare string;
     # the expansion normalizes both to the same plain key on the RouteDef, so core enforces
     # identically (declarative-routes 3.2).
     from moderatorim.sdk import App, Permission, PermissionAction, Route, RouteMethod
@@ -488,22 +486,15 @@ def test_collect_bundle_dedups_form_declared_by_sibling_viewroutes() -> None:
     assert not any(r.path.endswith("/delete") for r in app.routes)
 
 
-def test_legacy_pageroute_still_importable() -> None:
-    # The OLD single-page PageRoute(path=, handler=) shape survives as LegacyPageRoute so in-flight
-    # app imports keep working until Stage 3 migrates them to Route (declarative-routes design §2).
-    from moderatorim.sdk import App, Kind, LegacyPageRoute
+def test_custom_get_page_is_a_route_via_mount_pages() -> None:
+    # The OLD single-page PageRoute/LegacyPageRoute shape is GONE (declarative-routes 3.4); a custom
+    # GET page is a Route, recorded by mount(pages=) as a Kind.PAGE route.
+    from moderatorim.sdk import App, Kind, Route
 
     async def home(ctx):  # noqa: ANN001, ANN202
         return None
 
-    pr = LegacyPageRoute(path="/admin", handler=home, title="Admin", permission="admin.users.read")
-    assert pr.title == "Admin" and pr.permission == "admin.users.read" and pr.nav is None
-    with pytest.raises(ValueError, match="path"):
-        LegacyPageRoute(path="", handler=home)
-    with pytest.raises(ValueError, match="handler"):
-        LegacyPageRoute(path="/x", handler=None)
-
-    # App.mount(pages=) still accepts the legacy shape and records a Kind.PAGE route
+    pr = Route(path="/admin", handler=home, title="Admin", permission="admin.users.read")
     app = App()
     app.mount((), pages=(pr,))
     rd = next(r for r in app.routes if r.path == "/admin")
