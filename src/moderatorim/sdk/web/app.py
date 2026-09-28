@@ -316,15 +316,15 @@ class App:
         ``enrich`` is an optional ``async (ctx, rows) -> None`` hook applied to every LIST binding
         mounted here (see :meth:`list_view`), for per-row computed cells that join other tables.
 
-        ``actions`` is a tuple of :class:`RouteAction` — standalone route-actions (the declarative
-        form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by its single
-        ``permission``. Keep these in the app's ``actions.py``.
+        ``actions`` is a tuple of :class:`Route` (``method=POST``) — standalone route-actions (the
+        declarative form of ``@app.action``), each expanded into a ``Kind.ACTION`` route gated by
+        its single ``permission``. Keep these in the app's ``actions.py``.
 
-        ``pages`` is a tuple of :class:`Route` (GET) or the legacy :class:`LegacyPageRoute` — custom
-        pages (the declarative form of ``@app.page``), each expanded into a ``Kind.PAGE`` route
-        served by its ``handler``, gated on its single ``permission``. This lets ``routes.py`` be
-        uniformly tuples of declaration objects with no decorators — the escape-hatch page for a
-        screen the view generator cannot express.
+        ``pages`` is a tuple of :class:`Route` (GET) — custom pages (the declarative form of
+        ``@app.page``), each expanded into a ``Kind.PAGE`` route served by its ``handler``, gated on
+        its single ``permission``. This lets ``routes.py`` be uniformly tuples of declaration
+        objects with no decorators — the escape-hatch page for a screen the view generator cannot
+        express.
         """
         from moderatorim.sdk.views import CalendarView, FormView, ListView
 
@@ -351,20 +351,21 @@ class App:
             else:  # pragma: no cover - guarded by PageView, but fail loud on a new view type
                 raise TypeError(f"ViewRoute at {r.path!r} has an unsupported view {type(inner)!r}")
 
-        # Standalone route-actions (design §1): each RouteAction -> a Kind.ACTION RouteDef, gated by
-        # its single permission. The declarative form of @app.action.
+        # Standalone route-actions (design §1): each Route (POST/PATCH/DELETE) -> a Kind.ACTION
+        # RouteDef, gated by its single permission. The declarative form of @app.action.
         for a in actions:
+            methods = a.methods if hasattr(a, "methods") else (str(getattr(a, "method", "POST")),)
             self._routes.append(
                 RouteDef(
                     a.path,
-                    a.methods,
+                    methods,
                     handler=a.handler,
                     kind=Kind.ACTION,
                     permission=_perm_key(getattr(a, "permission", None)),
                 )
             )
 
-        # Custom pages (design §7.4): each Route/LegacyPageRoute -> a Kind.PAGE RouteDef served by
+        # Custom pages (design §7.4): each Route (GET) -> a Kind.PAGE RouteDef served by
         # its handler, gated on its single permission.
         for p in pages:
             self._routes.append(

@@ -64,7 +64,6 @@ EXPECTED_PUBLIC_API = {
     "PermissionAction",
     "Route",
     "RouteMethod",
-    "LegacyPageRoute",
     "ViewModel",
     "CalendarView",
     "ViewRoute",
@@ -73,7 +72,6 @@ EXPECTED_PUBLIC_API = {
     "FormFields",
     "FormOverview",
     "FormAction",
-    "RouteAction",
     "ViewExtension",
     # validation
     "Validator",

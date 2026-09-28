@@ -395,7 +395,7 @@ class Route:
     GET returns a :class:`~moderatorim.sdk.Page`; POST / PATCH / DELETE return a
     :class:`~moderatorim.sdk.Redirect` / :class:`~moderatorim.sdk.Rendered`. Replaces the
     ``@app.page`` / ``@app.action`` / ``@app.post`` decorators and the old standalone
-    ``PageRoute`` / :class:`RouteAction` — one item object, method-driven, so a domain's
+    ``PageRoute`` and the old ``RouteAction`` — one item object, method-driven, so a domain's
     ``routes.py`` is a uniform tuple of declarations.
 
     * ``path`` — the URL path (must be non-empty).
@@ -434,33 +434,6 @@ class Route:
 
 
 @dataclass(frozen=True, slots=True)
-class RouteAction:
-    """DEPRECATED thin alias-shape of ``Route(method=RouteMethod.POST)``, kept for one release so
-    existing ``RouteAction(...)`` callers keep importing and constructing while apps migrate
-    (design §4; full removal is Stage 4). Prefer :class:`Route` with ``method=RouteMethod.POST``.
-
-    A STANDALONE route-action: a POST endpoint at ``path`` invoking ``handler``, NOT attached to a
-    generated form's record. Distinct from :class:`FormAction`, a button INSIDE a form (bound to a
-    record at ``{base}/{id}/action``); a ``RouteAction`` is a page-level mutation at its own path
-    (e.g. ``/admin/roles/define``).
-
-    GATE — ``permission`` (a single full key), the same model as :class:`Route`. A POST action
-    declares the one capability it requires.
-    """
-
-    path: str
-    handler: object  # a callable (ctx) -> Redirect|Rendered, like an @app.action body
-    permission: Permission | str | None = None
-    methods: tuple[str, ...] = ("POST",)
-
-    def __post_init__(self) -> None:
-        if not self.path:
-            raise ValueError("RouteAction.path must be non-empty")
-        if self.handler is None:
-            raise ValueError("RouteAction.handler is required")
-
-
-@dataclass(frozen=True, slots=True)
 class PageRoute:
     """A domain's ROUTE BUNDLE — the declarative replacement for ``app.mount(...)``. Groups the
     generated ``views`` (:class:`ViewRoute`) + custom ``routes`` (:class:`Route`) + the default
@@ -471,44 +444,17 @@ class PageRoute:
     * ``views`` — generated model-driven routes (:class:`ViewRoute`).
     * ``routes`` — custom hand-written routes (:class:`Route`).
     * ``permission`` — the default resource permission PREFIX for this bundle (documentation /
-      grouping; e.g. ``"admin.roles"``). Not a gate itself — each route declares its own
-      ``permissions``.
+      grouping; e.g. ``"admin.roles"``). Not a gate itself — each route declares its own single
+      ``permission``.
     * ``enrich`` — optional ``async (ctx, rows) -> None`` hook applied to the bundle's list views
       (attach per-row computed data before render).
 
     NOTE: this REPURPOSES the name ``PageRoute`` (was: a single custom GET page). Every old
-    ``PageRoute(path=, handler=)`` becomes a :class:`Route` ``(path=, handler=)``; ``PageRoute``
-    graduates to the bundle. During the migration the OLD single-page class stays importable as
-    :class:`LegacyPageRoute` (temporary; removed once apps are migrated in Stage 3) so no in-flight
-    app import breaks.
+    ``PageRoute(path=, handler=)`` is now a :class:`Route` ``(path=, handler=)``; ``PageRoute``
+    graduates to the bundle.
     """
 
     views: tuple[ViewRoute, ...] = ()
     routes: tuple[Route, ...] = ()
     permission: str | None = None  # default resource prefix (documentation/grouping)
     enrich: object | None = None  # optional async (ctx, rows) -> None for views' lists
-
-
-@dataclass(frozen=True, slots=True)
-class LegacyPageRoute:
-    """TEMPORARY compatibility shim for the OLD single-page ``PageRoute(path=, handler=)`` (a custom
-    GET page), preserved only so app code importing the old shape keeps working until Stage 3
-    migrates every call site to :class:`Route`. DO NOT use in new code — declare a :class:`Route`
-    instead. Removed in Stage 3/4 once no caller remains.
-
-    Gating: ``roles`` (legacy route role gate) when set, else ``permission`` (a full permission key
-    checked at the route). ``title`` sets the page title; ``nav`` contributes a nav entry.
-    """
-
-    path: str
-    handler: object  # an async (ctx) -> Page, like an @app.page body
-    title: str | None = None
-    permission: str | None = None
-    roles: tuple[str, ...] = ()
-    nav: str | None = None
-
-    def __post_init__(self) -> None:
-        if not self.path:
-            raise ValueError("LegacyPageRoute.path must be non-empty")
-        if self.handler is None:
-            raise ValueError("LegacyPageRoute.handler is required")
