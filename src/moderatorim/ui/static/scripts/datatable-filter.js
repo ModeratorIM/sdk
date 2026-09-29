@@ -62,6 +62,43 @@
       if (menu) menu.classList.toggle("active");
       return;
     }
+    // Row-actions (more_vert) popup toggle. Close any other open row menu first so only one is
+    // open at a time.
+    var rowTrigger = evt.target.closest("[data-mim-rowmenu-toggle]");
+    if (rowTrigger) {
+      evt.preventDefault();
+      var wrap = rowTrigger.closest(".mim-rowmenu");
+      var rmenu = wrap && wrap.querySelector(".mim-rowmenu-menu");
+      var wasActive = rmenu && rmenu.classList.contains("active");
+      document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
+        m.classList.remove("active");
+      });
+      if (rmenu && !wasActive) rmenu.classList.add("active");
+      return;
+    }
+    // Open a delete-confirmation modal (Beer <dialog class="modal">). The row menu closes.
+    var modalOpen = evt.target.closest("[data-mim-modal-open]");
+    if (modalOpen) {
+      evt.preventDefault();
+      var openId = modalOpen.getAttribute("data-mim-modal-open");
+      var dlg = openId && document.getElementById(openId);
+      document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
+        m.classList.remove("active");
+      });
+      if (dlg && typeof dlg.showModal === "function") dlg.showModal();
+      else if (dlg) dlg.setAttribute("open", "true");
+      return;
+    }
+    // Close a modal (Cancel, or after the confirm button dispatches its hx-delete).
+    var modalClose = evt.target.closest("[data-mim-modal-close]");
+    if (modalClose) {
+      var closeId = modalClose.getAttribute("data-mim-modal-close");
+      var dlg2 = closeId && document.getElementById(closeId);
+      if (dlg2 && typeof dlg2.close === "function") dlg2.close();
+      else if (dlg2) dlg2.removeAttribute("open");
+      // do NOT preventDefault on the confirm button — htmx still needs to fire its hx-delete.
+      return;
+    }
     // Add a condition: clone the template row.
     var add = evt.target.closest(".mim-filter-add");
     if (add) {
