@@ -63,10 +63,12 @@
       return;
     }
     // Row-actions (more_vert) popup toggle. Close any other open row menu first so only one is
-    // open at a time.
+    // open at a time. stopPropagation so the click does NOT bubble to the row's hx-get (which
+    // would open the edit page instead of the menu).
     var rowTrigger = evt.target.closest("[data-mim-rowmenu-toggle]");
     if (rowTrigger) {
       evt.preventDefault();
+      evt.stopPropagation();
       var wrap = rowTrigger.closest(".mim-rowmenu");
       var rmenu = wrap && wrap.querySelector(".mim-rowmenu-menu");
       var wasActive = rmenu && rmenu.classList.contains("active");
@@ -77,9 +79,11 @@
       return;
     }
     // Open a delete-confirmation modal (Beer <dialog class="modal">). The row menu closes.
+    // stopPropagation so the menu-item click does not bubble to the row's hx-get.
     var modalOpen = evt.target.closest("[data-mim-modal-open]");
     if (modalOpen) {
       evt.preventDefault();
+      evt.stopPropagation();
       var openId = modalOpen.getAttribute("data-mim-modal-open");
       var dlg = openId && document.getElementById(openId);
       document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {

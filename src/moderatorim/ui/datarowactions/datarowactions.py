@@ -53,13 +53,16 @@ class DataRowActions(Component):
         if self.can_update:
             menu_items.append(
                 tag(
-                    "a",
-                    "Edit",
-                    **{
-                        "hx-get": f"{self.base_path}/{rid}",
-                        "hx-target": "body",
-                        "class": "mim-rowmenu-item",
-                    },
+                    "li",
+                    tag(
+                        "a",
+                        "Edit",
+                        **{
+                            "hx-get": f"{self.base_path}/{rid}",
+                            "hx-target": "body",
+                            "class": "mim-rowmenu-item",
+                        },
+                    ),
                 )
             )
 
@@ -69,13 +72,15 @@ class DataRowActions(Component):
             # Delete menu item just OPENS the confirm modal (no hx-delete here).
             menu_items.append(
                 tag(
-                    "button",
-                    "Delete",
-                    **{
-                        "type": "button",
-                        "class": "mim-rowmenu-item mim-rowmenu-danger",
-                        "data-mim-modal-open": modal_id,
-                    },
+                    "li",
+                    tag(
+                        "a",
+                        "Delete",
+                        **{
+                            "class": "mim-rowmenu-item mim-rowmenu-danger",
+                            "data-mim-modal-open": modal_id,
+                        },
+                    ),
                 )
             )
             what = esc(self.label) if self.label else "this record"
@@ -111,6 +116,11 @@ class DataRowActions(Component):
                 **{"id": modal_id, "class": "modal mim-delete-modal"},
             )
 
+        # Beer CSS native popup: a trigger <button> + a SIBLING <menu> (Beer owns the popup chrome —
+        # positioning, elevation, surface — and reveals it via the `.active` class). `right no-wrap`
+        # anchors it to the right edge and gives it a real width. The swap-safe delegated handler in
+        # datatable-filter.js toggles `.active` and stops the click from bubbling to the row's
+        # hx-get (which would otherwise open the edit page).
         trigger = tag(
             "button",
             tag("i", "more_vert"),
@@ -119,7 +129,9 @@ class DataRowActions(Component):
                 "class": "button transparent circle mim-rowmenu-toggle",
                 "title": "Actions",
                 "data-mim-rowmenu-toggle": "true",
+                "aria-haspopup": "menu",
+                "aria-expanded": "false",
             },
         )
-        menu = tag("div", *menu_items, **{"class": "mim-rowmenu-menu"})
+        menu = tag("menu", *menu_items, **{"class": "right no-wrap mim-rowmenu-menu"})
         return tag("div", trigger, menu, modal, **{"class": "mim-rowmenu"})
