@@ -195,7 +195,18 @@ class DataTable(Component):
                 )
             attrs: dict[str, Any] = {}
             if self.row_href and row.href:
-                attrs = {"hx-get": row.href, "hx-target": "body", "class": "mim-list-row"}
+                # Row is click-to-edit, BUT a click inside the actions cell (the more_vert menu,
+                # its items, or the delete-confirm modal) must NOT navigate. An htmx event filter
+                # on the row's own trigger is the reliable guard: it runs on the <tr> handler
+                # itself, so it suppresses navigation at the source regardless of event bubbling
+                # (a delegated document-level stopPropagation fires too late — htmx is bound to the
+                # <tr>, earlier in the bubble path).
+                attrs = {
+                    "hx-get": row.href,
+                    "hx-target": "body",
+                    "hx-trigger": "click[!event.target.closest('.mim-rowmenu')]",
+                    "class": "mim-list-row",
+                }
             body_rows.append(tag("tr", *cells, **attrs))
         return tag("tbody", *body_rows)
 

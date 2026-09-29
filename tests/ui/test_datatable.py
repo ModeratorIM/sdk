@@ -59,6 +59,10 @@ def test_row_href_makes_the_row_clickable() -> None:
     html = _table(row_href=True)
     assert 'class="mim-list-row"' in html
     assert 'hx-get="/u/u1"' in html
+    # a click inside the actions cell (menu/modal) must NOT navigate: the row's hx-trigger is
+    # filtered to ignore clicks whose target is inside .mim-rowmenu.
+    assert "hx-trigger=" in html and "mim-rowmenu" in html
+    assert "closest(" in html  # the event filter guards on target.closest('.mim-rowmenu')
     # a row with no href is not clickable
     assert html.count("mim-list-row") == 1
 
