@@ -33,6 +33,7 @@ EXPECTED_PUBLIC_API = {
     "DataFilter",
     "DataFilterCondition",
     "DataRow",
+    "DataRowActions",
     "DataTable",
     "Field",
     "Grid",

@@ -19,6 +19,7 @@ from moderatorim.ui.component import Component
 from moderatorim.ui.datacolumns import ColumnOption, DataColumns
 from moderatorim.ui.datafilter import DataFilter
 from moderatorim.ui.datafiltercondition import ConditionField, DataFilterCondition
+from moderatorim.ui.datarowactions import DataRowActions
 from moderatorim.ui.datatable import (
     Column,
     DataRow,
@@ -62,6 +63,7 @@ __all__ = [
     "DataFilter",
     "DataFilterCondition",
     "DataRow",
+    "DataRowActions",
     "DataTable",
     "Field",
     "Grid",

@@ -12,6 +12,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`moderatorim.ui.DataRowActions`** — a per-row action control for `DataTable`: a `more_vert`
+  popup menu (BeerCSS, mirroring `DataColumns`) holding Edit + Delete, rendered into a right-fixed
+  (sticky) actions column. Delete opens a per-row confirmation modal (`<dialog class="modal">`)
+  whose confirm button carries the `hx-delete`, so a destructive action needs an explicit second
+  click. Presentation-only; the caller supplies the record id, gate booleans, and display label.
 - **`moderatorim.ui.Header`** — a generic BeerCSS app-bar component (`header>nav`) with `title` +
   `actions` + `leading` slots (and `class_`/`title_class` passthroughs a host uses for its own
   styling). Apps compose their own top bar: `Header("Members", actions=[Button("Invite")])`.
