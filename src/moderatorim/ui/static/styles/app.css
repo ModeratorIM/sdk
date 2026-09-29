@@ -886,19 +886,20 @@ main.responsive {
 .mim-list-table tbody tr:hover td.mim-list-actions { background: var(--surface-variant); }
 .mim-list-table td.mim-list-actions { z-index: 1; }
 
-/* Row-actions (more_vert) popup: trigger + a Beer popup <menu> floating over the table, mirroring
-   the columns menu. */
+/* Row-actions (more_vert) popup: trigger + a popup menu floating over the table, mirroring the
+   columns menu. Hidden by default; the swap-safe JS toggles `.active`. */
 .mim-rowmenu { display: inline-block; position: relative; }
+.mim-rowmenu > .mim-rowmenu-menu { display: none; }
+.mim-rowmenu > .mim-rowmenu-menu.active { display: flex; }
 .mim-rowmenu-menu {
   position: absolute; right: 0; left: auto; top: 100%; z-index: 60;
   margin: 0.35rem 0 0 0; padding: 0.35rem;
   width: max-content; min-width: 9rem;
-  display: none; flex-direction: column; gap: 0.15rem;
+  flex-direction: column; gap: 0.15rem;
   background: var(--surface); color: var(--on-surface);
   border: 1px solid var(--outline-variant); border-radius: 0.6rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
 }
-.mim-rowmenu-menu.active { display: flex; }
 .mim-rowmenu-item {
   display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
   padding: 0.45rem 0.6rem; border-radius: 0.4rem;
@@ -906,11 +907,11 @@ main.responsive {
   color: var(--on-surface); cursor: pointer; text-decoration: none; font: inherit;
 }
 .mim-rowmenu-item:hover { background: var(--surface-variant); }
-.mim-rowmenu-item i { font-size: 1.15rem; }
 .mim-rowmenu-danger { color: var(--error); }
 .mim-rowmenu-danger:hover { background: color-mix(in srgb, var(--error) 12%, transparent); }
 
-/* Delete-confirmation modal: Beer `.modal` handles the dialog chrome; we only space the buttons. */
+/* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
+   reveal class). The JS adds `.active` on open; we only space the buttons. */
 .mim-delete-modal .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
 /* Boolean cell: a Material icon — a primary check when true, a muted close when false. */
 .mim-cell-bool { font-size: 1.15rem; vertical-align: middle; color: var(--primary); }

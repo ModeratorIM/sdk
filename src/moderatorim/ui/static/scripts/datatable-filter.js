@@ -85,8 +85,13 @@
       document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
         m.classList.remove("active");
       });
-      if (dlg && typeof dlg.showModal === "function") dlg.showModal();
-      else if (dlg) dlg.setAttribute("open", "true");
+      if (dlg) {
+        // Beer reveals a <dialog> via the `.active` class (its base rule is visibility:hidden);
+        // showModal() gives the native backdrop + Esc handling. Use both.
+        dlg.classList.add("active");
+        if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+        else dlg.setAttribute("open", "true");
+      }
       return;
     }
     // Close a modal (Cancel, or after the confirm button dispatches its hx-delete).
@@ -94,8 +99,11 @@
     if (modalClose) {
       var closeId = modalClose.getAttribute("data-mim-modal-close");
       var dlg2 = closeId && document.getElementById(closeId);
-      if (dlg2 && typeof dlg2.close === "function") dlg2.close();
-      else if (dlg2) dlg2.removeAttribute("open");
+      if (dlg2) {
+        dlg2.classList.remove("active");
+        if (typeof dlg2.close === "function" && dlg2.open) dlg2.close();
+        else dlg2.removeAttribute("open");
+      }
       // do NOT preventDefault on the confirm button — htmx still needs to fire its hx-delete.
       return;
     }
