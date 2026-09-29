@@ -54,8 +54,7 @@ class DataRowActions(Component):
             menu_items.append(
                 tag(
                     "a",
-                    tag("i", "edit"),
-                    tag("span", "Edit"),
+                    "Edit",
                     **{
                         "hx-get": f"{self.base_path}/{rid}",
                         "hx-target": "body",
@@ -71,8 +70,7 @@ class DataRowActions(Component):
             menu_items.append(
                 tag(
                     "button",
-                    tag("i", "delete"),
-                    tag("span", "Delete"),
+                    "Delete",
                     **{
                         "type": "button",
                         "class": "mim-rowmenu-item mim-rowmenu-danger",
