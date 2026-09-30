@@ -37,6 +37,7 @@
   flex-direction: column;
   padding: 0.5rem;
   box-sizing: border-box;
+  border-right: 1px solid var(--outline-variant)
 }
 /* On-rail text/icons are light in both modes — never the body's --on-surface (which flips). */
 .mim-nav-rail a,
@@ -753,7 +754,7 @@ main.responsive {
   border-top-right-radius: var(--mim-view-radius);
   gap: var(--mim-view-gap);
   padding: var(--mim-view-pad);
-  background: var(--surface-variant);
+  /* background: var(--surface-variant); */
   color: var(--on-surface-variant);
   border-bottom: 1px solid var(--outline-variant);
   position: sticky;
@@ -843,13 +844,17 @@ main.responsive {
 .mim-cols-item { display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
 /* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
 .mim-list-table { width: 100%; border-collapse: collapse; }
+.mim-list-table thead {
+  border-top: 1px solid var(--outline-variant);
+}
 .mim-list-table thead th {
   position: sticky; top: 0;
   text-align: left;
   padding: 0.6rem 1rem;
-  background: var(--surface-variant);
+  /* background: var(--surface-variant); */
   color: var(--on-surface-variant);
   font-weight: 600;
+  border-top: 1px solid var(--outline-variant);
   border-bottom: 1px solid var(--outline-variant);
   white-space: nowrap;
 }
@@ -882,7 +887,10 @@ main.responsive {
   position: sticky; right: 0;
   background: var(--surface);
 }
-.mim-list-table thead th:last-child { background: var(--surface-variant); z-index: 3; }
+.mim-list-table thead th:last-child { 
+  /* background: var(--surface-variant);  */
+  z-index: 3; 
+}
 .mim-list-table tbody tr:hover td.mim-list-actions { background: var(--surface-variant); }
 .mim-list-table td.mim-list-actions { z-index: 1; }
 
