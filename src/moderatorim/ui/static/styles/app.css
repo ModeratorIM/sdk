@@ -896,6 +896,15 @@ main.responsive {
 /* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
    reveal class). The JS adds `.active` on open; we only space the buttons. */
 .mim-delete-modal .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+/* Backdrop: we open the dialog with showModal(), which creates a native top-layer ::backdrop, but
+   Beer hides it by default (its backdrop only shows via the popover API). Re-enable a dimmed
+   scrim for our modal so the rest of the page is visibly behind it. */
+.mim-delete-modal::backdrop {
+  display: block;
+  background-color: var(--overlay, rgba(0, 0, 0, 0.5));
+  opacity: 1;
+  visibility: visible;
+}
 /* Boolean cell: a Material icon — a primary check when true, a muted close when false. */
 .mim-cell-bool { font-size: 1.15rem; vertical-align: middle; color: var(--primary); }
 .mim-cell-bool.mim-cell-bool-off { color: var(--outline); opacity: 0.6; }
