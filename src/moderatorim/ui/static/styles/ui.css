@@ -182,7 +182,7 @@
 /* Row-actions (more_vert) popup: a trigger button + a Beer native <menu> sibling. Beer owns the
    popup chrome (position/elevation/surface) and reveals it via `.active` — the swap-safe handler in
    datatable-filter.js toggles that class. We only anchor the wrapper and style the items. */
-.mim-rowmenu { display: inline-block; position: relative; }
+.mim-rowmenu { display: inline-flex; position: relative; line-height: 0; }
 .mim-rowmenu-item { white-space: nowrap; text-decoration: none; cursor: pointer; }
 .mim-rowmenu-danger, .mim-rowmenu-danger:visited { color: var(--error); }
 /* The popup itself: OUR CSS owns show/hide via `.active`, so Beer's native <menu> overlay (which
