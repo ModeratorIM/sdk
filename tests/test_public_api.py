@@ -71,6 +71,7 @@ EXPECTED_PUBLIC_API = {
     "FormView",
     "FormTab",
     "FormFields",
+    "FormList",
     "FormOverview",
     "FormAction",
     "ViewExtension",

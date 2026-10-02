@@ -12,6 +12,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`FormTab.actions` + `moderatorim.sdk.FormList`** — tabbed form sub-views: a `FormTab` may carry
+  its own `actions` (per-tab header buttons, shown for the active tab), and a `FormList` child
+  embeds a list of a RELATED model inside a tab (with a `region_id` for tab-scoped htmx refresh).
+  Enables master-detail forms — e.g. a role's Permissions tab listing its grants with an Add action
+  that refreshes only that tab. Backward compatible: a tab with no `actions` and fields-only
+  `views` renders as before.
 - **`TableColumn.source`** — the owning unit's manifest name (default `None` = unattributed, NOT
   `"core"`). Core stamps it unconditionally from the declaring manifest at boot; app authors never
   set it. Enables app-owned-column tracking (additive migration, uninstall retire-the-view).

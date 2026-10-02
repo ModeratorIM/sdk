@@ -132,6 +132,30 @@ class FormOverview:
 
 
 @dataclass(frozen=True, slots=True)
+class FormList:
+    """A form child view: an embedded list of a RELATED model inside a tab (tabbed-form-subviews
+    §2). Unlike ``FormFields`` (which renders the record's own columns), a ``FormList`` renders rows
+    of ``model`` via ``view`` — e.g. a role's granted permissions (``core_role_permission``) shown
+    inside the role form's Permissions tab.
+
+    ``region_id`` is the htmx target a tab action refreshes (``hx-target="#{region_id}"``); it
+    defaults to the enclosing tab panel's id when empty, so an Add/Remove action re-renders just
+    this list, not the whole form.
+    """
+
+    model: Any  # the related ViewModel / TableModel whose rows are listed
+    view: ListView  # how to render the rows
+    order: int = 100
+    region_id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id
+
+    def __post_init__(self) -> None:
+        if self.model is None:
+            raise ValueError("FormList.model is required")
+        if self.view is None:
+            raise ValueError("FormList.view is required")
+
+
+@dataclass(frozen=True, slots=True)
 class FormTab:
     """One tab of a :class:`FormView`. Holds an ordered list of child views (``views``).
 
@@ -141,9 +165,10 @@ class FormTab:
     """
 
     label: str
-    views: tuple[object, ...] = ()  # FormFields / FormOverview (later: embedded ListView / custom)
+    views: tuple[object, ...] = ()  # FormFields / FormOverview / FormList (embedded list)
     order: int = 100
     roles: tuple[str, ...] = ()
+    actions: tuple[FormAction, ...] = ()  # per-tab header actions (tabbed-form-subviews §1)
 
     def __post_init__(self) -> None:
         if not self.label:
@@ -152,6 +177,10 @@ class FormTab:
     @property
     def ordered_views(self) -> tuple[object, ...]:
         return tuple(sorted(self.views, key=lambda v: getattr(v, "order", 100)))
+
+    @property
+    def ordered_actions(self) -> tuple[FormAction, ...]:
+        return tuple(sorted(self.actions, key=lambda a: a.order))
 
 
 @dataclass(frozen=True, slots=True)
