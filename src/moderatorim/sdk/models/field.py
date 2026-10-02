@@ -61,6 +61,13 @@ class TableColumn:
     read_only: bool = False  # displayed but not editable
     display: bool = False  # THIS column is the record's display value (dropdowns / REF pickers)
     help: str = ""
+    # Owning unit, FILLED BY CORE from the declaring model's manifest at boot (see
+    # app-owned-columns design §1). Default None = "unattributed": authors never set it, and "no
+    # source" does NOT mean core. Core stamps every column unconditionally with its manifest name
+    # (core's models -> "core", an app's -> the app name), so a forgotten source can never
+    # masquerade as core ownership. A None surviving to runtime means the column was materialized
+    # outside any manifest (tests/ad-hoc).
+    source: str | None = None
 
     def __post_init__(self) -> None:
         if self.type in _REF_TYPES and not self.relation:

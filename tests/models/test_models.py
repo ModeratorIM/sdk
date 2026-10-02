@@ -18,6 +18,15 @@ from moderatorim.sdk import (
 )
 
 
+def test_column_source_defaults_to_none_not_core() -> None:
+    # source is manifest-derived (filled by core at boot). The dataclass default is None
+    # ("unattributed"), deliberately NOT "core" — so a forgotten source can never silently
+    # masquerade as core-owned (app-owned-columns design §1).
+    assert TableColumn(name="c", type=FieldType.TEXT).source is None
+    # An explicit source is preserved as given (core's stamp overwrites it at boot regardless).
+    assert TableColumn(name="c", type=FieldType.TEXT, source="shop").source == "shop"
+
+
 def test_column_ref_requires_relation() -> None:
     with pytest.raises(ValueError, match="requires `relation`"):
         TableColumn(name="c", type=FieldType.REF)
