@@ -45,6 +45,11 @@
   position: sticky;
   top: 0;
   z-index: 10;
+/* Embedded (in-form) list: when render_list(embedded=True) suppresses every toolbar control, the
+   DataTable still emits an empty .mim-list-toolbar. Hide the empty container so a related list
+   inside a form tab shows just its table — no padded, bordered, empty chrome band on top. The
+   `:empty` guard means a toolbar that DOES hold controls (a full list page) is never affected. */
+.mim-form-subview .mim-list-toolbar:empty { display: none; }
 }
 /* ListAction bar: list-level actions (New / bulk), right-aligned, above the toolbar. */
 .mim-list-actionbar {
