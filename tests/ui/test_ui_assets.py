@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from moderatorim.ui import ui_asset_dir, ui_asset_tags
 
-# The library assets that MUST ship with the wheel (default design + behavior).
+# The library assets that MUST ship with the wheel (default design + behavior). The brand/theme
+# token sheets moved to the host (core); the SDK ships the framework + the component stylesheet.
 _EXPECTED_FILES = (
     "styles/beer.min.css",
-    "styles/app.css",
-    "styles/theme-light.css",
-    "styles/theme-dark.css",
+    "styles/ui.css",
     "scripts/beer.min.js",
     "scripts/material-dynamic-colors.min.js",
     "scripts/htmx.min.js",

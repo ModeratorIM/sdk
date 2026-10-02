@@ -1,0 +1,345 @@
+/* ModeratorIM component styles (ui.css) — generic model-driven view components (List / Form).
+   Layered AFTER beer.min.css. MODE-AGNOSTIC: colours come from Beer/theme tokens
+   (--surface, --on-surface, --surface-variant, --primary, --outline-variant, --error) at
+   use-site, never hard-coded here. Core chrome + brand/theme tokens live in core's style.css. */
+
+:root {
+  /* Generated-view layout/spacing (ui-view-design). MODE-AGNOSTIC. */
+  --mim-view-radius: 1rem;       /* view card corner */
+  --mim-view-gap: 0.75rem;       /* toolbar / control spacing rhythm */
+  --mim-view-pad: 1rem;          /* card + toolbar padding */
+  --mim-row-height: 3rem;        /* comfortable data-table row (~48px) */
+  --mim-field-radius: 0.5rem;    /* pill/field corner (search, chips) */
+  --mim-touch: 44px;             /* min touch target on mobile */
+}
+
+.mim-alert {
+  margin-bottom: 20px;
+  padding: 0.7rem !important;
+  border-radius: 5px;
+}
+
+/* --- Model-driven List view (ui-view-design, Stage 1) ---------------------- */
+/* A modern Material data table in a surface card. Colours from Beer/theme tokens; layout from
+   the --mim-view-* / --mim-row-height vars. Scoped under .mim-list — no global element bleed. */
+.mim-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-view-radius);
+  overflow: visible; /* allow the columns popup to float over the table; corners clipped per-child */
+}
+.mim-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border-top-left-radius: var(--mim-view-radius);
+  border-top-right-radius: var(--mim-view-radius);
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+  /* background: var(--surface-variant); */
+  color: var(--on-surface-variant);
+  border-bottom: 1px solid var(--outline-variant);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+/* ListAction bar: list-level actions (New / bulk), right-aligned, above the toolbar. */
+.mim-list-actionbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+}
+/* Search: a pill field that grows to fill the left of the toolbar. (Final polish deferred.) */
+.mim-list-search {
+  flex: 1 1 12rem;
+  min-height: var(--mim-touch);
+  padding: 0 0.9rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 2rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+}
+.mim-list-search:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+/* Filter + columns controls are icon buttons that sit to the right of the search. */
+.mim-list-filters, .mim-list-toolbar > .mim-cols-editor { flex: 0 0 auto; }
+.mim-list-filters { display: inline-block; }
+.mim-list-filters > summary { list-style: none; cursor: pointer; }
+.mim-list-filters > summary::-webkit-details-marker { display: none; }
+.mim-filter-toggle, .mim-cols-toggle { display: inline-flex; align-items: center; }
+/* The filters wrapper uses display:contents so its two children (the icon trigger + the panel)
+   participate DIRECTLY in the toolbar flex: the trigger stays inline with search/columns, and the
+   panel is a full-width row (flex-basis:100%) that wraps BELOW them. The panel is hidden until the
+   trigger toggles `.active` (datatable-filter.js) — opening it never moves the buttons above. */
+.mim-list-filters { display: contents; }
+.mim-filter-panel {
+  display: none;
+  flex: 1 0 100%;
+  order: 1;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--outline-variant);
+  flex-direction: column; gap: 0.6rem;
+}
+.mim-filter-panel.active { display: flex; }
+/* Active-condition chips: removable pills above the add-condition builder. */
+.mim-filter-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mim-filter-builder { display: flex; flex-direction: column; gap: 0.5rem; }
+.mim-filter-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+/* One ServiceNow-style condition: field ▾ / operator ▾ / typed value / remove — aligned in a row,
+   the value control taking the remaining width. */
+.mim-filter-row {
+  display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+}
+/* field/operator selects are Beer `.field suffix` wrappers now; size the wrappers, not the bare
+   <select> (which carries .mim-filter-field / .mim-filter-op for the JS). */
+.mim-filter-row > .field { flex: 0 0 auto; margin: 0; }
+.mim-filter-row > .field:has(.mim-filter-field) { min-width: 9rem; }
+.mim-filter-row > .field:has(.mim-filter-op) { min-width: 7rem; }
+.mim-filter-row .mim-filter-value { flex: 1 1 12rem; }
+/* The value control is whatever render_column produced (Input/Select/Switch/…); make it fill. */
+.mim-filter-row .mim-filter-value > * { margin: 0; }
+.mim-filter-row .mim-filter-remove { flex: 0 0 auto; }
+.mim-filter-controls { display: flex; gap: 0.5rem; }
+/* Columns: the view_column icon trigger + a Beer CSS popup <menu> anchored to it (absolute,
+   elevated, floating over the table). z-index above the sticky thead so borders never overlay it. */
+.mim-cols-editor { display: inline-block; position: relative; }
+.mim-cols-menu {
+  position: absolute; right: 0; left: auto; top: 100%; z-index: 50;
+  margin: 0.35rem 0 0 0; padding: var(--mim-view-pad);
+  width: max-content; min-width: 12rem; max-width: 16rem;
+  display: none; flex-direction: column; gap: 0.35rem;
+  list-style: none;               /* it is a <menu>; drop UA/Beer list styling */
+  background: var(--surface); color: var(--on-surface);
+  border: 1px solid var(--outline-variant); border-radius: 0.6rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.mim-cols-menu.active { display: flex; }
+.mim-cols-form { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
+.mim-cols-item { display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+/* Table: full-width, horizontal dividers only, hover-tinted rows, no zebra. */
+.mim-list-table { width: 100%; border-collapse: collapse; }
+.mim-list-table thead {
+  border-top: 1px solid var(--outline-variant);
+}
+.mim-list-table thead th {
+  position: sticky; top: 0;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  /* background: var(--surface-variant); */
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  border-top: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--outline-variant);
+  white-space: nowrap;
+}
+.mim-list-table thead th a { text-decoration: none; color: inherit; }
+.mim-list-table thead th a:hover { color: var(--primary); }
+.mim-list-table tbody td {
+  padding: 0 1rem;
+  height: var(--mim-row-height);
+  border-bottom: 1px solid var(--outline-variant);
+  vertical-align: middle;
+}
+.mim-list-table tbody tr:last-child td { border-bottom: 0; }
+.mim-list-table tbody tr:hover td { background: var(--surface-variant); }
+/* Clickable rows (edit-on-click) — pointer affordance; the action buttons still fire their own. */
+.mim-list-table tbody tr.mim-list-row { cursor: pointer; }
+/* Row actions: trailing, right-aligned, revealed/emphasized on row hover. */
+.mim-list-table td.mim-list-actions {
+  text-align: right; white-space: nowrap;
+  display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center;
+  height: var(--mim-row-height);
+}
+.mim-list-table td.mim-list-actions .button { opacity: 0.75; transition: opacity 0.1s; }
+.mim-list-table tr:hover td.mim-list-actions .button { opacity: 1; }
+
+/* Actions column FIXED to the right: the last header + the actions cell stick on horizontal
+   scroll so the more_vert menu is always reachable. z-index above the body cells; the sticky
+   thead corner sits above both. */
+.mim-list-table thead th:last-child,
+.mim-list-table td.mim-list-actions {
+  position: sticky; right: 0;
+  background: var(--surface);
+}
+.mim-list-table thead th:last-child { 
+  /* background: var(--surface-variant);  */
+  z-index: 3; 
+}
+.mim-list-table tbody tr:hover td.mim-list-actions { background: var(--surface-variant); }
+.mim-list-table td.mim-list-actions { z-index: 1; }
+
+/* Row-actions (more_vert) popup: a trigger button + a Beer native <menu> sibling. Beer owns the
+   popup chrome (position/elevation/surface) and reveals it via `.active` — the swap-safe handler in
+   datatable-filter.js toggles that class. We only anchor the wrapper and style the items. */
+.mim-rowmenu { display: inline-block; position: relative; }
+.mim-rowmenu-item { white-space: nowrap; text-decoration: none; cursor: pointer; }
+.mim-rowmenu-danger, .mim-rowmenu-danger:visited { color: var(--error); }
+
+/* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
+   reveal class). The JS adds `.active` on open; we only space the buttons. */
+.mim-delete-modal .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+/* Backdrop: we open the dialog with showModal(), which creates a native top-layer ::backdrop, but
+   Beer hides it by default (its backdrop only shows via the popover API). Re-enable a dimmed
+   scrim for our modal so the rest of the page is visibly behind it. */
+.mim-delete-modal::backdrop {
+  display: block;
+  background-color: var(--overlay, rgba(0, 0, 0, 0.5));
+  opacity: 1;
+  visibility: visible;
+}
+/* Boolean cell: a Material icon — a primary check when true, a muted close when false. */
+.mim-cell-bool { font-size: 1.15rem; vertical-align: middle; color: var(--primary); }
+.mim-cell-bool.mim-cell-bool-off { color: var(--outline); opacity: 0.6; }
+/* Empty state: centered, muted, generous padding. */
+.mim-list-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+/* Footer: pagination right, range text left. */
+.mim-list-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--mim-view-gap);
+  padding: var(--mim-view-pad);
+  border-top: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
+}
+.mim-list-footer > span { margin-right: auto; } /* range text left, buttons right */
+.mim-list-footer .button { text-decoration: none; }
+
+/* Responsive: below 600px the table stacks into a card-list (per-cell labels via data-label). */
+@media (max-width: 600px) {
+  .mim-list-toolbar { flex-direction: column; align-items: stretch; }
+  .mim-list-search { flex: 1 1 auto; }
+  .mim-filter-builder, .mim-cols-form { position: static; box-shadow: none; min-width: 0; }
+  .mim-list-table thead { display: none; } /* hide header; each cell shows its own label */
+  .mim-list-table, .mim-list-table tbody, .mim-list-table tr, .mim-list-table td { display: block; }
+  .mim-list-table tbody tr {
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--mim-field-radius);
+    margin: var(--mim-view-gap) var(--mim-view-pad);
+    background: var(--surface);
+  }
+  .mim-list-table tbody td {
+    height: auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--outline-variant);
+    text-align: right;
+    min-height: var(--mim-touch);
+  }
+  .mim-list-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--on-surface-variant);
+    text-align: left;
+  }
+  .mim-list-table td.mim-list-actions { justify-content: flex-end; border-bottom: 0; }
+  .mim-list-table td.mim-list-actions::before { content: ""; } /* no label for the actions row */
+}
+
+
+/* --- Model-driven Form view (ui-view-design, Stage 2) ---------------------- */
+/* A focused editing surface: a capped, centered card holding heading → (tabs) → fields → sticky
+   footer. Colours from Beer/theme tokens; scoped under .mim-form-view — no global bleed. */
+.mim-form-view {
+  max-width: 1080px;
+  margin: 0 auto;
+  background: var(--surface);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--mim-view-radius);
+  overflow: hidden;
+}
+.mim-form { display: flex; flex-direction: column; }
+/* Error banner at the top of the card (soft error tint). */
+.mim-form-errors {
+  margin: 0;
+  list-style: none;
+  padding: var(--mim-view-pad);
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  color: var(--error);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.mim-form-errors li { margin: 0.15rem 0; }
+/* Record header (edit). */
+.mim-form-overview {
+  padding: var(--mim-view-pad) var(--mim-view-pad) 0;
+}
+.mim-form-overview h5 { margin: 0; }
+/* ServiceNow-style form header band: record title left, action buttons right. Its own row,
+   above the tab strip. */
+.mim-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mim-view-gap);
+  padding: 0.6rem var(--mim-view-pad);
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container, var(--surface));
+}
+.mim-form-title { margin: 0; font-size: 1rem; }
+.mim-form-actions { display: flex; gap: 0.5rem; align-items: center; }
+.mim-form-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0;
+  padding: 0 var(--mim-view-pad);
+  border-bottom: 1px solid var(--outline-variant);
+  overflow-x: auto; /* scroll if tabs exceed width (narrow screens) */
+}
+.mim-form-tab {
+  padding: 0.75rem 0.5rem;
+  text-decoration: none;
+  color: var(--on-surface-variant);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mim-form-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+/* Panels: only the active one shows (JS toggles .active). */
+.mim-form-panel { display: none; padding: var(--mim-view-pad); }
+.mim-form-panel.active { display: block; }
+/* When there are no tabs, the single panel still needs its padding. */
+.mim-form > .mim-form-panel:only-of-type { display: block; }
+/* Field grid — the declared column count on desktop; single column on mobile. */
+.mim-form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+.mim-form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.mim-form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.mim-form-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.mim-form-field.span-2 { grid-column: span 2; }
+.mim-form-field.span-3 { grid-column: span 3; }
+/* Inputs are Beer CSS `.field` wrappers now (small size) — Beer owns their border/padding/label,
+   so we do NOT restyle the raw input/select/textarea here (that fought Beer's own field styling).
+   Only the grid layout, span, and help text are ours. */
+.mim-form-help { color: var(--on-surface-variant); font-size: 0.8rem; }
+
+/* Responsive: edge-to-edge card + single-column fields on phones. */
+@media (max-width: 640px) {
+  .mim-form-view { max-width: none; margin: 0; border-left: 0; border-right: 0; border-radius: 0; }
+  .mim-form-grid.cols-2, .mim-form-grid.cols-3 { grid-template-columns: 1fr; }
+  .mim-form-field.span-2, .mim-form-field.span-3 { grid-column: span 1; }
+}
