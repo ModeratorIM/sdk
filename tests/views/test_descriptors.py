@@ -120,6 +120,16 @@ def test_formtab_actions_and_formlist() -> None:
     tab = FormTab(label="Permissions", actions=(a1, a2))
     assert [a.label for a in tab.ordered_actions] == ["Edit", "Add"]  # by order
 
+    # all_actions on the view = form-level actions first, then each tab's (tab order) — the
+    # unified /action/{idx} index space shared by route-binding and the renderer.
+    from moderatorim.sdk import FormView
+
+    fv = FormView(
+        actions=(FormAction(label="Delete", handler=lambda ctx: None, order=5),),
+        tabs=(FormTab(label="Perms", order=10, actions=(a2, a1)),),
+    )
+    assert [a.label for a in fv.all_actions] == ["Delete", "Edit", "Add"]
+
     # FormList carries a related model + a ListView, with an optional refresh region id.
     lv = ListView(fields=())
     fl = FormList(model="core_role_permission", view=lv, region_id="perm-list")
