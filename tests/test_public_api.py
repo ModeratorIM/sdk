@@ -67,6 +67,7 @@ EXPECTED_PUBLIC_API = {
     "ViewModel",
     "CalendarView",
     "ViewRoute",
+    "FormSave",
     "FormView",
     "FormTab",
     "FormFields",
