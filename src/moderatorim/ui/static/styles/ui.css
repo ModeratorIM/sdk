@@ -345,6 +345,24 @@
    Only the grid layout, span, and help text are ours. */
 .mim-form-help { color: var(--on-surface-variant); font-size: 0.8rem; }
 
+/* Read mode (.mim-form-readonly): fields are functionally locked (readonly inputs / disabled
+   selects+checkboxes, set by the renderer) but Beer does not grey them — so make them VISIBLY
+   non-editable. Muted surface, default cursor, no focus ring, and a disabled select/checkbox reads
+   at full opacity (not Beer's dimmed default) since the whole form is intentionally read-only. */
+.mim-form-readonly input[readonly],
+.mim-form-readonly textarea[readonly],
+.mim-form-readonly select[disabled] {
+  cursor: default;
+  color: var(--on-surface);
+  opacity: 1;
+}
+.mim-form-readonly input[readonly]:focus,
+.mim-form-readonly textarea[readonly]:focus {
+  outline: none;
+  box-shadow: none;
+}
+.mim-form-readonly .field.border { border-style: dashed; }
+
 /* Responsive: edge-to-edge card + single-column fields on phones. */
 @media (max-width: 640px) {
   .mim-form-view { max-width: none; margin: 0; border-left: 0; border-right: 0; border-radius: 0; }
