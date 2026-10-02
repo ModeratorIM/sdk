@@ -18,7 +18,7 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   `ListView.select="multi"` renders a leading checkbox column (a set-editor) with `select_key`
   naming the submitted key column. A `FormTab.editor` is the ModalView opened by that tab's
   permission-driven Edit control (a fields tab leaves it None → Edit toggles form-edit mode).
-  `FormTab.actions` are now the tab's more_vert OVERFLOW items, not primary buttons.
+  `FormTab.actions` are now the tab's more_vert OVERFLOW items, not primary buttons. `ModalView.rows` is an optional async resolver supplying the select-mode body's candidate rows (each with `_checked`).
 - **`FormTab.actions` + `moderatorim.sdk.FormList`** — tabbed form sub-views: a `FormTab` may carry
   its own `actions` (per-tab header buttons, shown for the active tab), and a `FormList` child
   embeds a list of a RELATED model inside a tab (with a `region_id` for tab-scoped htmx refresh).

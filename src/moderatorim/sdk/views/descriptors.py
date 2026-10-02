@@ -320,6 +320,13 @@ class ModalView:
     label: str = ""
     actions: tuple[ModalAction, ...] = ()
     order: int = 100
+    # Optional async resolver supplying the modal body's rows when the inner view is a select-mode
+    # ListView (tabbed-form-subviews §7): ``rows(ctx, parent_id) -> list[dict]`` returns the
+    # CANDIDATE rows, each with the view's ``select_key`` plus a truthy ``_checked`` for the ones
+    # currently a member. Core renders the checkbox list from it (``/editor`` GET). The app owns
+    # this because candidates + current membership are domain-specific (e.g. roles: the permission
+    # catalog, checked = the role's grants). Reconcile on Save is the ModalAction's own handler.
+    rows: object = None
 
     def __post_init__(self) -> None:
         if self.view is None:
