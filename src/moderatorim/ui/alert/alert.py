@@ -20,4 +20,6 @@ class Alert(Component):
 
     def render(self) -> Raw:
         fill = {"error": "error", "success": "green", "info": "surface-variant"}[self.variant]
-        return tag("div", tag("span", self.message), class_=f"padding {fill}", role="alert")
+        return tag(
+            "div", tag("span", self.message), class_=f"mim-alert padding {fill}", role="alert"
+        )

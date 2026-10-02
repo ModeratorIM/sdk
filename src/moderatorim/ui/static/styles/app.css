@@ -20,6 +20,12 @@
   --mim-touch: 44px;             /* min touch target on mobile */
 }
 
+.mim-alert {
+  margin-bottom: 20px;
+  padding: 0.7rem !important;
+  border-radius: 5px;
+}
+
 /* ---- Authenticated app shell: left nav rail (dark-purple) + content ------------------------ */
 /* The shell OWNS its layout (does not rely on Beer CSS's nav.left grid area): a flex row of the
    dark-purple rail + the content main. Mobile-first — rail is an off-canvas drawer by default,
