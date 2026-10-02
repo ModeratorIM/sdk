@@ -15,8 +15,8 @@ def test_more_vert_menu_with_edit_and_delete() -> None:
     assert "more_vert" in html
     assert 'data-mim-rowmenu-toggle="true"' in html
     assert "mim-rowmenu-menu" in html
-    # the popup is a Beer native <menu> (Beer owns show/hide via .active), right-anchored
-    assert "<menu " in html and "right no-wrap mim-rowmenu-menu" in html
+    # the popup is a <menu> whose show/hide our own CSS owns via .active, right-anchored
+    assert "<menu " in html and "mim-rowmenu-menu mim-anchor-right" in html
     assert 'aria-haspopup="menu"' in html
     # Edit is an hx-GET to the record form (text-only, no icon), wrapped in a menu <li>
     assert 'hx-get="/admin/users/7"' in html and ">Edit</a>" in html
