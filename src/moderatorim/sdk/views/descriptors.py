@@ -33,6 +33,9 @@ class Field:
     * ``display_field`` — for a REF column, the target column to show as its label; defaults to the
       target's ``display=True`` column (convention).
     * ``help`` — helper/placeholder text; falls back to the column's own label.
+    * ``read_only`` — VIEW-level lock: render this field non-editable even in a form's edit mode
+      (e.g. a profile's ``email``, which is the login identity and changes via a separate verified
+      flow). Independent of the column's own ``read_only``; composes by OR.
     * ``custom`` — ESCAPE HATCH (design §7.3): a ``(record) -> cell content`` callback that renders
       a computed / non-field List cell (a status badge, a derived value, an action button like
       admin's super-user toggle). RETURN A UI PRIMITIVE (``tag(...)`` / ``Raw(...)``) — a plain
@@ -47,6 +50,7 @@ class Field:
     span: int = 1
     display_field: str = ""
     help: str = ""
+    read_only: bool = False
     custom: Callable[[dict[str, Any]], Any] | None = None
 
     def __post_init__(self) -> None:
