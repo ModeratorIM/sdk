@@ -185,6 +185,26 @@
 .mim-rowmenu { display: inline-block; position: relative; }
 .mim-rowmenu-item { white-space: nowrap; text-decoration: none; cursor: pointer; }
 .mim-rowmenu-danger, .mim-rowmenu-danger:visited { color: var(--error); }
+/* The popup itself: OUR CSS owns show/hide via `.active`, so Beer's native <menu> overlay (which
+   injects a click-catching overlay + a ~90ms animation) never engages — that overlay was the cause
+   of the list-view dismiss delay AND the form-view no-op. Mirrors .mim-cols-menu. `right`/`left`
+   anchor to the trigger's edge (list uses right, the form header uses left). */
+.mim-rowmenu-menu {
+  position: absolute; top: 100%; z-index: 50;
+  margin: 0.35rem 0 0 0; padding: 0.35rem;
+  width: max-content; min-width: 10rem; max-width: 18rem;
+  display: none; flex-direction: column; gap: 0.1rem;
+  list-style: none;
+  background: var(--surface); color: var(--on-surface);
+  border: 1px solid var(--outline-variant); border-radius: 0.6rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+.mim-rowmenu-menu.right { right: 0; left: auto; }
+.mim-rowmenu-menu.left { left: 0; right: auto; }
+.mim-rowmenu-menu.active { display: flex; }
+.mim-rowmenu-menu > li { list-style: none; }
+.mim-rowmenu-item { display: block; padding: 0.4rem 0.6rem; border-radius: 0.4rem; }
+.mim-rowmenu-item:hover { background: var(--surface-variant); }
 /* Divider inside a rowmenu/actionwell <menu>, before a destructive item (e.g. Delete). */
 .mim-rowmenu-divider {
   height: 0; margin: 0.25rem 0; padding: 0;
