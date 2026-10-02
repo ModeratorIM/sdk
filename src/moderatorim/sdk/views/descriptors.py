@@ -92,6 +92,14 @@ class ListView:
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
+    # Multi-select set-editor mode (tabbed-form-subviews §7): when "multi", the list renders a
+    # leading checkbox column (rows pre-checked by the caller's current set) so it can be used
+    # inside a ModalView as a "pick the members" editor whose Save submits the checked keys. ""
+    # (default) is an ordinary navigable list.
+    select: str = ""
+    # The column whose value is the checkbox's submitted key when select="multi" (defaults to the
+    # display column). For roles' permission picker this is "permission".
+    select_key: str = ""
 
     def __post_init__(self) -> None:
         if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):
@@ -175,7 +183,12 @@ class FormTab:
     views: tuple[object, ...] = ()  # FormFields / FormOverview / FormList (embedded list)
     order: int = 100
     roles: tuple[str, ...] = ()
-    actions: tuple[FormAction, ...] = ()  # per-tab header actions (tabbed-form-subviews §1)
+    actions: tuple[FormAction, ...] = ()  # per-tab OVERFLOW (more_vert) actions
+    # The set-editor opened by this tab's permission-driven Edit control (tabbed-form-subviews §7).
+    # When set, the tab's Edit (shown if the viewer holds the resource's .update) opens this modal
+    # instead of toggling the record into form-edit mode. A fields tab leaves this None (Edit =
+    # form edit mode).
+    editor: ModalView | None = None
 
     def __post_init__(self) -> None:
         if not self.label:
@@ -269,6 +282,52 @@ class FormView:
         for tab in self.ordered_tabs:
             out.extend(tab.ordered_actions)
         return tuple(out)
+
+
+@dataclass(frozen=True, slots=True)
+class ModalAction:
+    """A declared button in a :class:`ModalView`'s header. Like :class:`FormAction`, but its
+    completion CLOSES the modal (and the opener refreshes its region). Used for the modal's Save in
+    a set-editor (reconcile the checked set → close → refresh the tab panel that opened it).
+    """
+
+    label: str
+    handler: object  # a callable core binds to the modal's action route
+    roles: tuple[str, ...] = ()
+    order: int = 100
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("ModalAction.label is required")
+        if self.handler is None:
+            raise ValueError("ModalAction.handler is required")
+
+
+@dataclass(frozen=True, slots=True)
+class ModalView:
+    """A dialog container that renders an inner ``view`` in a ``<dialog class="modal">``
+    (tabbed-form-subviews §7). Like :class:`FormView`/:class:`FormTab`, it is a pure CONTAINER — the
+    inner view supplies the content, and ``actions`` (``ModalAction``s) are the modal's header
+    controls (a modal action closes the dialog on completion). Opened by a permission-driven Edit
+    control on the tab that declares it as its ``editor``.
+
+    ``view`` is typically a :class:`ListView` with ``select="multi"`` (a set-editor), or a
+    :class:`FormView` (edit a related record in a modal). ``label`` names the modal (trigger text /
+    dialog title).
+    """
+
+    view: object
+    label: str = ""
+    actions: tuple[ModalAction, ...] = ()
+    order: int = 100
+
+    def __post_init__(self) -> None:
+        if self.view is None:
+            raise ValueError("ModalView.view is required")
+
+    @property
+    def ordered_actions(self) -> tuple[ModalAction, ...]:
+        return tuple(sorted(self.actions, key=lambda a: a.order))
 
 
 @dataclass(frozen=True, slots=True)

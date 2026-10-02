@@ -69,6 +69,8 @@ EXPECTED_PUBLIC_API = {
     "ViewRoute",
     "FormSave",
     "FormView",
+    "ModalAction",
+    "ModalView",
     "FormTab",
     "FormFields",
     "FormList",
