@@ -1,11 +1,13 @@
 """Access to the BeerCSS/MDC/base assets shipped inside ``moderatorim.ui``.
 
 The component library carries its own default design + behavior: the BeerCSS stylesheet + JS,
-material-dynamic-colors, htmx, the base structural ``app.css``, the theme token sheets, and the
-JS that drives the interactive components (``theme-toggle.js`` for ``ThemeToggle``,
-``nav-collapse.js`` for ``NavRail``/``AccountMenu``). SERVING is a host job: a host locates the
-files via :func:`ui_asset_dir` (``importlib.resources``), mounts them at a URL IT owns, and emits
-the ``<head>`` refs via :func:`ui_asset_tags` — so no filename is hardcoded at the call site.
+material-dynamic-colors, htmx, the component stylesheet ``ui.css``, and the JS that drives the
+interactive components (``theme-toggle.js`` for ``ThemeToggle``, ``nav-collapse.js`` for
+``NavRail``/``AccountMenu``). The brand/theme token sheets and core-chrome styles are a HOST
+concern — the host serves them (as core's ``style.css`` + theme sheets) layered after these.
+SERVING is a host job: a host locates the files via :func:`ui_asset_dir` (``importlib.resources``),
+mounts them at a URL IT owns, and emits the ``<head>`` refs via :func:`ui_asset_tags` — so no
+filename is hardcoded at the call site.
 """
 
 from __future__ import annotations
@@ -15,12 +17,12 @@ from pathlib import Path
 
 from moderatorim.ui.html import Raw, tag
 
-# Stylesheets (order matters: BeerCSS first, then theme tokens, then structural overrides).
+# Stylesheets (order matters: BeerCSS framework first, then the component overrides). The brand/
+# theme token sheets (theme-light/dark.css) are a HOST concern now — core serves them with its own
+# chrome styles, layered after these.
 STYLESHEETS: tuple[str, ...] = (
     "styles/beer.min.css",
-    "styles/theme-light.css",
-    "styles/theme-dark.css",
-    "styles/app.css",
+    "styles/ui.css",
 )
 
 # Module scripts (BeerCSS + MDC are ES modules; component-behavior scripts are modules too).
