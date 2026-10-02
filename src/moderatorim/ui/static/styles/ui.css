@@ -217,6 +217,17 @@
 /* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
    reveal class). The JS adds `.active` on open; we only space the buttons. */
 .mim-delete-modal .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+/* Modal header (editor modals): sticky at the top of the scrolling dialog, title left + actions
+   right. The header carries .fixed so Beer makes it sticky; we lay out title vs actions. */
+.mim-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.mim-modal-title { font-weight: 700; font-size: 1.25rem; margin: 0; }
+/* Modal action cluster: right-aligned with a gap (all modals). */
+.mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
 /* Backdrop: we open the dialog with showModal(), which creates a native top-layer ::backdrop, but
    Beer hides it by default (its backdrop only shows via the popover API). Re-enable a dimmed
    scrim for ALL our modals (delete confirm, editor, …) so the rest of the page is visibly
