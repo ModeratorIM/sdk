@@ -138,6 +138,12 @@ class FormList:
     of ``model`` via ``view`` — e.g. a role's granted permissions (``core_role_permission``) shown
     inside the role form's Permissions tab.
 
+    ``link`` is the REF column ON ``model`` that points back at the PARENT form's table; core scopes
+    the list to ``{link} = {parent record_id}``. Leave it ``""`` to AUTO-DETECT (the single REF on
+    ``model`` whose ``relation`` is the parent table); name it explicitly only when ``model`` has
+    more than one REF to the parent. The link is a reverse-REF relation — a related tab therefore
+    requires a saved parent record (it cannot scope on create).
+
     ``region_id`` is the htmx target a tab action refreshes (``hx-target="#{region_id}"``); it
     defaults to the enclosing tab panel's id when empty, so an Add/Remove action re-renders just
     this list, not the whole form.
@@ -145,6 +151,7 @@ class FormList:
 
     model: Any  # the related ViewModel / TableModel whose rows are listed
     view: ListView  # how to render the rows
+    link: str = ""  # the REF column on `model` -> parent table; "" = auto-detect the single REF
     order: int = 100
     region_id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id
 
