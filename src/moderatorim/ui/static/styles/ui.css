@@ -217,17 +217,27 @@
 /* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
    reveal class). The JS adds `.active` on open; we only space the buttons. */
 .mim-delete-modal .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-/* Modal header (editor modals): sticky at the top of the scrolling dialog, title left + actions
-   right. The header carries .fixed so Beer makes it sticky; we lay out title vs actions. */
+/* Modal header (editor modals): a FIXED bar at the top of the scrolling dialog — title left,
+   actions right — matching the main page's fixed-header pattern. It is a <header class="fixed">,
+   so Beer makes it sticky; we give it a solid background + divider so content scrolls beneath it. */
 .mim-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  position: sticky;
+  top: calc(var(--_padding, 1.5rem) * -1);
+  margin: calc(var(--_padding, 1.5rem) * -1) calc(var(--_padding, 1.5rem) * -1) 0;
+  padding: 1rem var(--_padding, 1.5rem);
+  background-color: var(--surface-container-high);
+  border-bottom: 0.0625rem solid var(--outline-variant);
+  z-index: 2;
 }
 .mim-modal-title { font-weight: 700; font-size: 1.25rem; margin: 0; }
 /* Modal action cluster: right-aligned with a gap (all modals). */
 .mim-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+/* Modal body scrolls beneath the fixed header. */
+.mim-modal-body { padding-top: 1rem; }
 /* Backdrop: we open the dialog with showModal(), which creates a native top-layer ::backdrop, but
    Beer hides it by default (its backdrop only shows via the popover API). Re-enable a dimmed
    scrim for ALL our modals (delete confirm, editor, …) so the rest of the page is visibly
