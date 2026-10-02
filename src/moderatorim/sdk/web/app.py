@@ -176,7 +176,7 @@ class App:
         # One ACTION route per declared FormAction, at {base}/{id}/action/{idx}, routed to the
         # action's OWN handler. The action's roles= gate the BUTTON at render (L3); the route is
         # permission-gated at the resource's .update floor (a form action mutates the record).
-        for idx, act in enumerate(getattr(view, "ordered_actions", ())):
+        for idx, act in enumerate(getattr(view, "all_actions", ())):
             self._routes.append(
                 RouteDef(
                     f"{base_path}/{{id}}/action/{idx}",

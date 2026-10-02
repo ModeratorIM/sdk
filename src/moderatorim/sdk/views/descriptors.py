@@ -251,6 +251,18 @@ class FormView:
     def ordered_actions(self) -> tuple[FormAction, ...]:
         return tuple(sorted(self.actions, key=lambda a: a.order))
 
+    @property
+    def all_actions(self) -> tuple[FormAction, ...]:
+        """The unified, ordered action list that defines the ``/action/{idx}`` index space:
+        form-level actions first, then each tab's actions in tab order (tabbed-form-subviews §3).
+        BOTH the route binding (``App.form_view``) and the core renderer walk THIS list, so a
+        per-tab action button's index matches the route core bound for it.
+        """
+        out: list[FormAction] = list(self.ordered_actions)
+        for tab in self.ordered_tabs:
+            out.extend(tab.ordered_actions)
+        return tuple(out)
+
 
 @dataclass(frozen=True, slots=True)
 class ViewExtension:
