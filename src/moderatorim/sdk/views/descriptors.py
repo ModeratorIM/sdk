@@ -75,17 +75,19 @@ class ListView:
       columns (e.g. hide sensitive columns from filtering). Non-filterable types (JSON/LIST/LISTREF)
       are auto-excluded regardless.
     * ``sort`` — the initial ``(column, "asc"|"desc")`` order, or None for the store default.
-    * ``row_actions`` — whether to render per-row Edit/Delete + the New button (default True). Set
-      False for a READ-ONLY list that has no paired ``form_view`` (e.g. a catalog, or a list whose
-      records are managed elsewhere) — otherwise a caller holding ``.update``/``.create`` would see
-      action controls linking to form routes that do not exist. Independent of permission gating.
+    * ``enable_actions`` — whether to render per-row Edit/Delete + the New button (default True).
+      Set False for a READ-ONLY list that has no paired ``form_view`` (e.g. a catalog, or a list
+      whose records are managed elsewhere) — otherwise a caller holding ``.update``/``.create``
+      would see action controls linking to form routes that do not exist. A suppress-only VETO:
+      permission (``ctx.can``) decides whether the CRUD buttons show; this only forces them off.
+      Independent of permission gating.
     """
 
     fields: tuple[Field, ...] = ()
     search: tuple[str, ...] = ()
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
-    row_actions: bool = True
+    enable_actions: bool = True
 
     def __post_init__(self) -> None:
         if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):
