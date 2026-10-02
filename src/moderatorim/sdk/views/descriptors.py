@@ -85,10 +85,6 @@ class ListView:
       would see action controls linking to form routes that do not exist. A suppress-only VETO:
       permission (``ctx.can``) decides whether the CRUD buttons show; this only forces them off.
       Independent of permission gating.
-    * ``lock_field`` — name of a boolean row field that LOCKS a row: when truthy for a given row,
-      that row shows no Edit/Delete (e.g. ``"protected"`` for system roles — immutable, so no row
-      controls). Per-ROW suppression (unlike ``enable_actions``, which is whole-list). The server
-      still enforces its own immutability; this only hides the per-row controls. Empty = no locking.
     """
 
     fields: tuple[Field, ...] = ()
@@ -96,7 +92,6 @@ class ListView:
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
-    lock_field: str = ""
 
     def __post_init__(self) -> None:
         if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):
