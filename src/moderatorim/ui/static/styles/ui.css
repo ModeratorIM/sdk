@@ -347,6 +347,9 @@
 /* Panels: only the active one shows (JS toggles .active). */
 .mim-form-panel { display: none; padding: var(--mim-view-pad); }
 .mim-form-panel.active { display: block; }
+/* Per-tab header action groups: only the active tab's group shows (tabbed-form-subviews). */
+.mim-form-tabactions { display: none; }
+.mim-form-tabactions.active { display: inline-flex; gap: var(--mim-gap, 0.5rem); }
 /* When there are no tabs, the single panel still needs its padding. */
 .mim-form > .mim-form-panel:only-of-type { display: block; }
 /* Field grid — the declared column count on desktop; single column on mobile. */

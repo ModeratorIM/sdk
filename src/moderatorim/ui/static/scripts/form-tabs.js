@@ -26,5 +26,11 @@
     for (var j = 0; j < panels.length; j++) {
       panels[j].classList.toggle("active", panels[j].getAttribute("data-panel") === key);
     }
+    // Show the matching per-tab action group, hide the rest (tabbed-form-subviews: a tab's own
+    // header actions are shown only when its tab is active — client-side swap, no round-trip).
+    var groups = form.querySelectorAll(".mim-form-tabactions");
+    for (var k = 0; k < groups.length; k++) {
+      groups[k].classList.toggle("active", groups[k].getAttribute("data-tabactions") === key);
+    }
   });
 })();
