@@ -110,6 +110,35 @@ def test_form_descriptors() -> None:
         FormView(tabs=())
 
 
+def test_modalview_and_modalaction() -> None:
+    from moderatorim.sdk import FormTab, ListView, ModalAction, ModalView
+
+    # ListView select mode
+    lv = ListView(fields=(), select="multi", select_key="permission")
+    assert lv.select == "multi" and lv.select_key == "permission"
+
+    # ModalAction requires label + handler
+    import pytest
+
+    with pytest.raises(ValueError, match="label"):
+        ModalAction(label="", handler=lambda c: None)
+    with pytest.raises(ValueError, match="handler"):
+        ModalAction(label="Save", handler=None)
+
+    # ModalView wraps a view + ordered modal actions; requires a view
+    a2 = ModalAction(label="Save", handler=lambda c: None, order=20)
+    a1 = ModalAction(label="Reset", handler=lambda c: None, order=10)
+    mv = ModalView(view=lv, label="Edit permissions", actions=(a2, a1))
+    assert mv.label == "Edit permissions" and mv.view is lv
+    assert [a.label for a in mv.ordered_actions] == ["Reset", "Save"]
+    with pytest.raises(ValueError, match="view"):
+        ModalView(view=None)
+
+    # a tab can carry an editor modal (opened by its permission-driven Edit)
+    tab = FormTab(label="Permissions", editor=mv)
+    assert tab.editor is mv
+
+
 def test_formtab_actions_and_formlist() -> None:
     from moderatorim.sdk import FormAction, FormList, FormTab, ListView
 
