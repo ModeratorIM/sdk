@@ -134,6 +134,8 @@ def test_formtab_actions_and_formlist() -> None:
     lv = ListView(fields=())
     fl = FormList(model="core_role_permission", view=lv, region_id="perm-list")
     assert fl.model == "core_role_permission" and fl.view is lv and fl.region_id == "perm-list"
+    assert fl.link == ""  # default = auto-detect the single REF back to the parent
+    assert FormList(model="core_role_permission", view=lv, link="role_id").link == "role_id"
     with pytest.raises(ValueError, match="model"):
         FormList(model=None, view=lv)
     with pytest.raises(ValueError, match="view"):
