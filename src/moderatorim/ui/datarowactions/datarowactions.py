@@ -133,5 +133,5 @@ class DataRowActions(Component):
                 "aria-expanded": "false",
             },
         )
-        menu = tag("menu", *menu_items, **{"class": "mim-rowmenu-menu mim-anchor-right"})
+        menu = tag("menu", *menu_items, **{"class": "right no-wrap mim-rowmenu-menu"})
         return tag("div", trigger, menu, modal, **{"class": "mim-rowmenu"})
