@@ -110,6 +110,26 @@ def test_form_descriptors() -> None:
         FormView(tabs=())
 
 
+def test_formtab_actions_and_formlist() -> None:
+    from moderatorim.sdk import FormAction, FormList, FormTab, ListView
+
+    # FormTab.actions default empty; ordered_actions sorts by order.
+    assert FormTab(label="D").actions == ()
+    a1 = FormAction(label="Add", handler=lambda ctx: None, order=20)
+    a2 = FormAction(label="Edit", handler=lambda ctx: None, order=10)
+    tab = FormTab(label="Permissions", actions=(a1, a2))
+    assert [a.label for a in tab.ordered_actions] == ["Edit", "Add"]  # by order
+
+    # FormList carries a related model + a ListView, with an optional refresh region id.
+    lv = ListView(fields=())
+    fl = FormList(model="core_role_permission", view=lv, region_id="perm-list")
+    assert fl.model == "core_role_permission" and fl.view is lv and fl.region_id == "perm-list"
+    with pytest.raises(ValueError, match="model"):
+        FormList(model=None, view=lv)
+    with pytest.raises(ValueError, match="view"):
+        FormList(model="x", view=None)
+
+
 def test_formview_save_delegate() -> None:
     from moderatorim.sdk import FormSave, FormTab, FormView
 
