@@ -110,6 +110,29 @@ def test_form_descriptors() -> None:
         FormView(tabs=())
 
 
+def test_formview_save_delegate() -> None:
+    from moderatorim.sdk import FormSave, FormTab, FormView
+
+    # Default: no save delegate -> generic ctx.store path (save is None).
+    assert FormView(tabs=(FormTab(label="D"),)).save is None
+
+    # A delegate implementing the FormSave protocol is carried on the view and is runtime-checkable.
+    class RoleSave:
+        async def create(self, ctx, model, data):  # type: ignore[no-untyped-def]
+            return {}
+
+        async def update(self, ctx, model, record_id, data):  # type: ignore[no-untyped-def]
+            return {}
+
+        async def delete(self, ctx, model, record_id):  # type: ignore[no-untyped-def]
+            return None
+
+    rs = RoleSave()
+    fv = FormView(tabs=(FormTab(label="D"),), save=rs)
+    assert fv.save is rs
+    assert isinstance(rs, FormSave)  # structural (runtime_checkable Protocol)
+
+
 def test_view_extension_and_app_extend_view() -> None:
     from moderatorim.sdk import App, FormAction, FormTab, ViewExtension
 

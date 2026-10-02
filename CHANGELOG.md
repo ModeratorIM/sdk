@@ -12,6 +12,15 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`TableColumn.source`** — the owning unit's manifest name (default `None` = unattributed, NOT
+  `"core"`). Core stamps it unconditionally from the declaring manifest at boot; app authors never
+  set it. Enables app-owned-column tracking (additive migration, uninstall retire-the-view).
+- **`FormView.save` + `moderatorim.sdk.FormSave`** — an optional save delegate (protocol with
+  optional `create`/`update`/`delete`). When set, core routes a generated Form's mutations through
+  it instead of the generic `ctx.store` write path — the seam for a resource whose create/update/
+  delete must run domain logic (e.g. roles reconcile `core_role_permission` grants and refuse
+  system-row mutation via `ctx.authz.define_role`/`delete_role`). None (default) keeps the generic
+  store path, unchanged.
 - **`moderatorim.ui.DataRowActions`** — a per-row action control for `DataTable`: a `more_vert`
   popup menu (BeerCSS, mirroring `DataColumns`) holding Edit + Delete, rendered into a right-fixed
   (sticky) actions column. Delete opens a per-row confirmation modal (`<dialog class="modal">`)

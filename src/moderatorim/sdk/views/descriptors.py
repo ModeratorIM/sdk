@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from moderatorim.sdk.models.field import TableColumn
 
@@ -171,16 +171,44 @@ class FormAction:
             raise ValueError("FormAction.handler is required")
 
 
+@runtime_checkable
+class FormSave(Protocol):
+    """Optional save delegate for a :class:`FormView` (declarative-views save seam). An app
+    supplies one when a resource's create/update/delete must run domain logic instead of a generic
+    ``ctx.store`` table write — e.g. roles reconcile ``core_role_permission`` grants and refuse
+    system-row mutation through ``ctx.authz.define_role``/``delete_role``.
+
+    All three methods are OPTIONAL; core calls whichever is defined and falls back to the generic
+    store path for any the delegate omits. ``data`` is the validated+coerced field dict; ``ctx`` is
+    the request context (carries ``ctx.authz``, ``ctx.store``, ``ctx.form()``).
+    """
+
+    async def create(self, ctx: Any, model: Any, data: dict[str, Any]) -> dict[str, Any]: ...
+
+    async def update(
+        self, ctx: Any, model: Any, record_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]: ...
+
+    async def delete(self, ctx: Any, model: Any, record_id: str) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class FormView:
     """A single root form view composed of :class:`FormTab`s (ordered) + declared ``actions``.
 
     New and Edit share one FormView — edit pre-fills from the resolved record; create renders empty
     (``ctx.is_new``). The first tab (lowest order) is the default.
+
+    ``save`` is an OPTIONAL delegate (a :class:`FormSave`). When set, core routes the form's
+    create/update/delete through it INSTEAD of the generic ``ctx.store`` write path — the seam for
+    a resource whose mutations must run domain logic (e.g. roles reconcile grants + guard system
+    rows via ``ctx.authz.define_role``, never a raw table write). When None (the default) the
+    generic store path is used, unchanged.
     """
 
     tabs: tuple[FormTab, ...] = ()
     actions: tuple[FormAction, ...] = ()
+    save: FormSave | None = None
 
     def __post_init__(self) -> None:
         if not self.tabs:
