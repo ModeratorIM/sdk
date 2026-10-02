@@ -361,7 +361,6 @@
   outline: none;
   box-shadow: none;
 }
-.mim-form-readonly .field.border { border-style: dashed; }
 
 /* Responsive: edge-to-edge card + single-column fields on phones. */
 @media (max-width: 640px) {
