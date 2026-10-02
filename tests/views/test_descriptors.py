@@ -137,6 +137,12 @@ def test_modalview_and_modalaction() -> None:
     # a tab can carry an editor modal (opened by its permission-driven Edit)
     tab = FormTab(label="Permissions", editor=mv)
     assert tab.editor is mv
+    assert mv.rows is None  # default: no resolver
+
+    async def _rows(ctx, pid):
+        return []
+
+    assert ModalView(view=lv, rows=_rows).rows is _rows
 
 
 def test_formtab_actions_and_formlist() -> None:
