@@ -185,6 +185,14 @@
 .mim-rowmenu { display: inline-block; position: relative; }
 .mim-rowmenu-item { white-space: nowrap; text-decoration: none; cursor: pointer; }
 .mim-rowmenu-danger, .mim-rowmenu-danger:visited { color: var(--error); }
+/* Divider inside a rowmenu/actionwell <menu>, before a destructive item (e.g. Delete). */
+.mim-rowmenu-divider {
+  height: 0; margin: 0.25rem 0; padding: 0;
+  border: 0; border-top: 1px solid var(--outline-variant); list-style: none;
+}
+/* Action-well: the form header's action row — a primary button (Edit/Save) + the more_vert
+   overflow trigger, right-aligned. Reuses the .mim-rowmenu popup for the overflow menu. */
+.mim-actionwell { display: flex; gap: 0.35rem; align-items: center; justify-content: flex-end; }
 
 /* Delete-confirmation modal: Beer's `dialog` is visibility:hidden until `.active` (its native
    reveal class). The JS adds `.active` on open; we only space the buttons. */
