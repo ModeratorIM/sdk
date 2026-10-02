@@ -367,11 +367,16 @@
   border-bottom-color: var(--primary);
 }
 /* Panels: only the active one shows (JS toggles .active). */
-.mim-form-panel { display: none; padding: var(--mim-view-pad); }
-.mim-form-panel.active { display: block; }
+/* Hide rules are PARENT-SCOPED (specificity 0,2,0) so they beat Beer CSS's bare
+   `.active { display: inherit }` rule (0,1,0): an inactive tab panel/action group must stay
+   hidden even though it is a plain `.mim-form-panel`/`.mim-form-tabactions` with no `.active`,
+   and an equal-specificity `display:none` would otherwise lose to Beer by source order — which
+   leaked the inactive Permissions-tab Edit button onto the Detail tab. */
+.mim-form > .mim-form-panel { display: none; padding: var(--mim-view-pad); }
+.mim-form > .mim-form-panel.active { display: block; }
 /* Per-tab header action groups: only the active tab's group shows (tabbed-form-subviews). */
-.mim-form-tabactions { display: none; }
-.mim-form-tabactions.active { display: inline-flex; gap: var(--mim-gap, 0.5rem); }
+.mim-form-actions .mim-form-tabactions { display: none; }
+.mim-form-actions .mim-form-tabactions.active { display: inline-flex; gap: var(--mim-gap, 0.5rem); }
 /* When there are no tabs, the single panel still needs its padding. */
 .mim-form > .mim-form-panel:only-of-type { display: block; }
 /* Field grid — the declared column count on desktop; single column on mobile. */
