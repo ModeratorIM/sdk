@@ -100,6 +100,15 @@ class Ctx:
         raw = (await self.request.body()).decode()
         return {k: v[0] for k, v in parse_qs(raw).items()}
 
+    async def form_multi(self) -> dict[str, list[str]]:
+        """Parse the urlencoded body into {field: [all values]} — the multi-value form read.
+        Use this when a field repeats (a checkbox group / multi-select set-editor); ``form()``
+        keeps only the last value and would collapse the set."""
+        from urllib.parse import parse_qs
+
+        raw = (await self.request.body()).decode()
+        return {k: list(v) for k, v in parse_qs(raw).items()}
+
     def query(self, key: str, default: str = "") -> str:
         """Read a query-string parameter."""
         value: str = self.request.query_params.get(key, default)
