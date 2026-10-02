@@ -140,6 +140,17 @@
         if (c) c.value = "";
       }
     }
+
+    // Click-away: a click that reached here hit none of the triggers above. If it also landed
+    // OUTSIDE every open popup, dismiss them (rowmenu more_vert, columns menu, filter panel).
+    // A click INSIDE an open menu is left alone so menu items still work.
+    if (!evt.target.closest(".mim-rowmenu-menu, .mim-cols-menu, .mim-filter-panel")) {
+      document.querySelectorAll(
+        ".mim-rowmenu-menu.active, .mim-cols-menu.active, .mim-filter-panel.active"
+      ).forEach(function (m) {
+        m.classList.remove("active");
+      });
+    }
   });
 
   // On submit, compose every row's value name (a row never touched still needs its name).
