@@ -149,3 +149,28 @@ def test_esc_prevents_injection_in_text_cell() -> None:
     )
     assert "<script>x</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_multiselect_renders_checkbox_column() -> None:
+    from moderatorim.ui.datatable import DataRow
+
+    rows = [
+        DataRow(id="1", cells={"email": "a@x.com", "_checked": True}),
+        DataRow(id="2", cells={"email": "b@x.com"}),
+    ]
+    html = _table(rows=rows, multiselect=True, select_key="email")
+    # a header select-all checkbox ...
+    assert "mim-list-selectall" in html and 'data-mim-select-all="true"' in html
+    # ... one row checkbox per row, posting under name="selected" ...
+    assert html.count("mim-list-rowcheck") == 2
+    assert html.count('name="selected"') == 2
+    # ... value taken from select_key, with _checked rows pre-checked ...
+    assert 'value="a@x.com"' in html and 'value="b@x.com"' in html
+    assert 'checked="checked"' in html  # the _checked row
+    # ... and the unchecked row is not pre-checked.
+    assert "checked" not in html.split('value="b@x.com"')[1][:40]
+
+
+def test_multiselect_off_has_no_checkbox_column() -> None:
+    html = _table()  # default multiselect=False
+    assert "mim-list-rowcheck" not in html and "mim-list-selectall" not in html
