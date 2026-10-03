@@ -100,6 +100,15 @@ class ListView:
     # The column whose value is the checkbox's submitted key when select="multi" (defaults to the
     # display column). For roles' permission picker this is "permission".
     select_key: str = ""
+    # multiselect: the ergonomic public flag — render a leading checkbox column in the list itself
+    # (DataTable), so the ListView can be used as a set editor. Equivalent to select="multi"; either
+    # turns the checkbox column on. The checkbox value comes from `select_key` (else the row id).
+    multiselect: bool = False
+
+    @property
+    def is_multiselect(self) -> bool:
+        """True when the list should render its checkbox column (new flag OR legacy select)."""
+        return self.multiselect or self.select == "multi"
 
     def __post_init__(self) -> None:
         if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):

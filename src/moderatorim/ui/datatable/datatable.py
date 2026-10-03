@@ -104,6 +104,8 @@ class DataTable(Component):
         actions: Sequence[Component | Raw | str] = (),
         toolbar_extra: Sequence[Component | Raw | str] = (),
         empty_label: str = "No records yet.",
+        multiselect: bool = False,
+        select_key: str = "",
     ) -> None:
         self.columns = tuple(columns)
         self.rows = tuple(rows)
@@ -122,6 +124,12 @@ class DataTable(Component):
         self.actions = tuple(actions)
         self.toolbar_extra = tuple(toolbar_extra)
         self.empty_label = empty_label
+        # multiselect: render a leading checkbox column (a header select-all + one checkbox per
+        # row). The checkbox value is the row's `select_key` cell (defaults to the row id); a row
+        # whose cells carry a truthy `_checked` is pre-checked. Each checkbox submits under
+        # name="selected" so a form around the table posts the chosen keys as one field.
+        self.multiselect = multiselect
+        self.select_key = select_key
 
     # ---- cells -------------------------------------------------------------
     def _cell_value(self, col: Column, row: DataRow) -> Any:
@@ -151,6 +159,23 @@ class DataTable(Component):
 
     def _header(self) -> Raw:
         cells: list[Any] = []
+        if self.multiselect:
+            # Leading select-all checkbox: data-mim-select-all toggles every row checkbox (JS).
+            cells.append(
+                tag(
+                    "th",
+                    tag(
+                        "label",
+                        tag(
+                            "input",
+                            **{"type": "checkbox", "data-mim-select-all": "true"},
+                        ),
+                        tag("span", ""),
+                        class_="checkbox mim-list-selectall",
+                    ),
+                    class_="mim-list-select-col",
+                )
+            )
         for col in self.columns:
             if col.sortable and col.custom is None and self.base_path:
                 arrow = ""
@@ -184,6 +209,34 @@ class DataTable(Component):
                 tag("td", self._cell_value(col, row), **{"data-label": col.header})
                 for col in self.columns
             ]
+            if self.multiselect:
+                # Per-row checkbox: value = the row's select_key cell (default: row id); a row with
+                # a truthy `_checked` cell is pre-checked. name="selected" so a surrounding form
+                # posts the chosen keys together.
+                key = (
+                    str(row.cells.get(self.select_key, "") or row.id) if self.select_key else row.id
+                )
+                box_attrs: dict[str, Any] = {
+                    "type": "checkbox",
+                    "name": "selected",
+                    "value": key,
+                    "class": "mim-list-rowcheck",
+                }
+                if row.cells.get("_checked"):
+                    box_attrs["checked"] = "checked"
+                cells.insert(
+                    0,
+                    tag(
+                        "td",
+                        tag(
+                            "label",
+                            tag("input", **box_attrs),
+                            tag("span", ""),
+                            class_="checkbox",
+                        ),
+                        **{"data-label": "", "class": "mim-list-select-col"},
+                    ),
+                )
             if self.row_actions:
                 action_cells = [rendered for _id, rendered in self.row_actions]
                 cells.append(
