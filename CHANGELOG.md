@@ -12,6 +12,21 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **View-object `id` (ARCHITECTURE D5)** — every element-rendering view descriptor (`ListView`,
+  `FormList`, `FormView`, `FormTab`, `CalendarView`, `DashboardView`, `StatCard`, `ScoreCard`,
+  `BarChart`) now carries an optional `id: str = ""`. When set, the engine renders it as the
+  element's DOM id and uses it as the htmx swap target + CSS/test hook; when empty the engine keeps
+  its per-context default. This makes multiple same-kind views on one page uniquely addressable
+  (the general form of the cross-page list-search fix). Value-leaf descriptors (`ScoreBand`,
+  `ListCardField`, `Filter`, `Field`, …) deliberately have no `id`.
+
+### Changed / Deprecated
+- **`FormList.region_id` → `id`.** `region_id` is renamed to the uniform `id` (above). The old
+  `region_id=` keyword is still accepted for ONE release — it maps to `id` and emits a
+  `DeprecationWarning`. Passing both `id` and `region_id` is an error. Migrate `FormList(region_id=…)`
+  to `FormList(id=…)`.
+
+### Added
 - **Dashboard-visuals widget descriptors** — `MetricSource` / `SeriesSource` (a widget's table
   binding: `model` names the table like `PageView.model`, `filters` reuse the `Filter`/`FilterOp`
   grammar, `agg`/`group_by`/`bucket` shape the aggregate), plus `StatCard`, `ScoreCard` + `ScoreBand`

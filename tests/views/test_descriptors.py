@@ -165,12 +165,16 @@ def test_formtab_actions_and_formlist() -> None:
     )
     assert [a.label for a in fv.all_actions] == ["Delete", "Edit", "Add"]
 
-    # FormList carries a related model + a ListView, with an optional refresh region id.
+    # FormList carries a related model + a ListView, with an optional refresh id (D5).
     lv = ListView(fields=())
-    fl = FormList(model="core_role_permission", view=lv, region_id="perm-list")
-    assert fl.model == "core_role_permission" and fl.view is lv and fl.region_id == "perm-list"
+    fl = FormList(model="core_role_permission", view=lv, id="perm-list")
+    assert fl.model == "core_role_permission" and fl.view is lv and fl.id == "perm-list"
     assert fl.link == ""  # default = auto-detect the single REF back to the parent
     assert FormList(model="core_role_permission", view=lv, link="role_id").link == "role_id"
+    # region_id is the DEPRECATED alias of id — still accepted, mapped to id with a warning.
+    with pytest.warns(DeprecationWarning):
+        legacy = FormList(model="core_role_permission", view=lv, region_id="perm-list")
+    assert legacy.id == "perm-list"
     with pytest.raises(ValueError, match="model"):
         FormList(model=None, view=lv)
     with pytest.raises(ValueError, match="view"):
