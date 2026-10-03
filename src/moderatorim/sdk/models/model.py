@@ -28,9 +28,16 @@ class TableModel:
       * ``label`` — the human display name for the model (e.g. ``Users``), used by the views layer
         for page titles / nav. Defaults to a title-cased derivation of ``name`` when omitted.
       * ``columns`` — an ordered tuple of :class:`~moderatorim.sdk.models.field.TableColumn`.
-      * ``role`` — the TABLE ACL gate (moderatorim-table-acl): an empty tuple = open (governed only
-        by the caller's route role); a role tuple gates CRUD in the ``DataStore`` for every caller.
-        Enforced in the store, unbypassable.
+      * ``role`` — DEPRECATED legacy table-ACL (a role-NAME tuple, op-blind). Superseded by
+        ``acl`` (permission-based, per-op). Retained for one release; unused by the current store
+        gate when ``acl`` is set. New models should use ``acl``.
+      * ``acl`` — the TABLE ACL gate (moderatorim-table-acl-hardening): a RESOURCE-PERMISSION BASE
+        like ``"core.session"``. Empty = open (governed only by the route layer). When set, the
+        store gate derives the required permission PER OP and resolves the caller's effective
+        permissions against it — read-family ops (get/list/count) require ``{acl}.read``, writes
+        require ``{acl}.create`` / ``.update`` / ``.delete``. The SAME permission currency the
+        route layer checks; super-user + the system principal bypass. Enforced in the store,
+        unbypassable by apps.
       * ``soft_delete`` — if True (default), ``DataStore.delete`` is a soft delete.
 
     Column names ``id`` and ``deleted_at`` are reserved (managed by the core/backend).
@@ -40,6 +47,7 @@ class TableModel:
     label: str = ""
     columns: tuple[TableColumn, ...] = ()
     role: tuple[str, ...] = ()
+    acl: str = ""
     soft_delete: bool = True
 
     def __post_init__(self) -> None:
