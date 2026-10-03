@@ -104,6 +104,7 @@ class ListView:
     # (DataTable), so the ListView can be used as a set editor. Equivalent to select="multi"; either
     # turns the checkbox column on. The checkbox value comes from `select_key` (else the row id).
     multiselect: bool = False
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     @property
     def is_multiselect(self) -> bool:
@@ -161,22 +162,36 @@ class FormList:
     more than one REF to the parent. The link is a reverse-REF relation — a related tab therefore
     requires a saved parent record (it cannot scope on create).
 
-    ``region_id`` is the htmx target a tab action refreshes (``hx-target="#{region_id}"``); it
-    defaults to the enclosing tab panel's id when empty, so an Add/Remove action re-renders just
-    this list, not the whole form.
+    ``id`` is this view object's identity (ARCHITECTURE D5). When set, the engine renders it as the
+    element id and uses it as the htmx refresh target (``hx-target="#{id}"``); when empty it
+    defaults to the enclosing tab panel's id, so an Add/Remove action re-renders just this list,
+    not the whole form. (``region_id`` is the DEPRECATED former name of this field — still accepted
+    for one release, mapped to ``id`` with a warning.)
     """
 
     model: Any  # the related ViewModel / TableModel whose rows are listed
     view: ListView  # how to render the rows
     link: str = ""  # the REF column on `model` -> parent table; "" = auto-detect the single REF
     order: int = 100
-    region_id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id
+    id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id (D5)
+    region_id: str = ""  # DEPRECATED alias of `id`; mapped in __post_init__ (remove next release)
 
     def __post_init__(self) -> None:
         if self.model is None:
             raise ValueError("FormList.model is required")
         if self.view is None:
             raise ValueError("FormList.view is required")
+        if self.region_id:
+            if self.id:
+                raise ValueError(
+                    "FormList: pass only one of `id` / `region_id` (region_id is deprecated)"
+                )
+            import warnings
+
+            object.__setattr__(self, "id", self.region_id)
+            warnings.warn(
+                "FormList.region_id is deprecated; use `id`.", DeprecationWarning, stacklevel=3
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +213,7 @@ class FormTab:
     # instead of toggling the record into form-edit mode. A fields tab leaves this None (Edit =
     # form edit mode).
     editor: ModalView | None = None
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     def __post_init__(self) -> None:
         if not self.label:
@@ -267,6 +283,7 @@ class FormView:
     tabs: tuple[FormTab, ...] = ()
     actions: tuple[FormAction, ...] = ()
     save: FormSave | None = None
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     def __post_init__(self) -> None:
         if not self.tabs:
@@ -376,6 +393,7 @@ class CalendarView:
     start_field: str
     title_field: str
     end_field: str | None = None
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     def __post_init__(self) -> None:
         if not self.start_field:
@@ -661,6 +679,7 @@ class StatCard:
     source: MetricSource
     delta_source: MetricSource | None = None  # optional prior-period metric for the delta
     span: int = 3  # BeerCSS 12-col grid span
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -683,6 +702,7 @@ class ScoreCard:
     bands: tuple[ScoreBand, ...] = ()
     max: float = 100.0
     span: int = 3
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -693,6 +713,7 @@ class BarChart:
     source: SeriesSource
     span: int = 6
     height: int = 160  # px, SVG viewport height
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -701,3 +722,4 @@ class DashboardView:
     the BeerCSS grid. Pure declaration; the renderer dispatches by widget class name."""
 
     widgets: tuple[object, ...] = ()
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
