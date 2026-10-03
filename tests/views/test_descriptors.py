@@ -181,6 +181,59 @@ def test_formtab_actions_and_formlist() -> None:
         FormList(model="x", view=None)
 
 
+def test_list_card() -> None:
+    from moderatorim.sdk import FormTab, ListCard, ListCardAction, ListCardField
+
+    field = ListCardField(label="Device", value="user_agent", format="browser")
+    assert field.label == "Device" and field.value == "user_agent" and field.format == "browser"
+    assert not hasattr(field, "id")  # value-leaf — no D5 id
+
+    action = ListCardAction(
+        label="Revoke",
+        hx_post="/settings/sessions/{id}/revoke",
+        roles=("core.session.delete",),
+        confirm="Revoke this session?",
+        variant="danger",
+    )
+    assert action.hx_post == "/settings/sessions/{id}/revoke"
+    assert (
+        action.roles == ("core.session.delete",) and action.confirm and action.variant == "danger"
+    )
+    assert not hasattr(action, "id")  # value-leaf — no D5 id
+
+    card = ListCard(
+        model="core_session",
+        fields=(field,),
+        actions=(action,),
+        link="user_id",
+        filters=("state == active",),
+        id="mim-sessions-self",
+    )
+    assert card.model == "core_session" and card.id == "mim-sessions-self"
+    assert card.fields == (field,) and card.actions == (action,)
+    assert card.link == "user_id" and card.onclick == ""  # non-navigable by default
+    assert card.empty_label == "Nothing here yet."
+
+    # ListCard is a valid FormTab child (the Sessions tab holds one).
+    tab = FormTab(label="Sessions", order=20, views=(card,))
+    assert tab.views == (card,)
+
+    # distinct ids per mount so a swap can't cross-target (D5).
+    admin_card = ListCard(model="core_session", fields=(field,), id="mim-sessions-admin")
+    assert admin_card.id != card.id
+
+    with pytest.raises(ValueError, match="label"):
+        ListCardField(label="", value="x")
+    with pytest.raises(ValueError, match="value"):
+        ListCardField(label="x", value="")
+    with pytest.raises(ValueError, match="label"):
+        ListCardAction(label="", hx_post="/x")
+    with pytest.raises(ValueError, match="hx_post"):
+        ListCardAction(label="x", hx_post="")
+    with pytest.raises(ValueError, match="model"):
+        ListCard(model=None)
+
+
 def test_formview_save_delegate() -> None:
     from moderatorim.sdk import FormSave, FormTab, FormView
 
