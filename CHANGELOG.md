@@ -12,6 +12,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`ListCard` view descriptor** — a list rendered as one card per row (vs `ListView`'s
+  table), with `ListCardField` (labelled facts, optional `datetime`/`browser` formatters) and
+  `ListCardAction` (per-card buttons that POST to a fixed owner-declared route, role-gated,
+  optional `confirm`/`variant`). `ListCard` carries an `id` (D5) so the same card list mounted
+  in two places stays a distinct htmx swap target. Introduced for the sessions view.
 - **View-object `id` (ARCHITECTURE D5)** — every element-rendering view descriptor (`ListView`,
   `FormList`, `FormView`, `FormTab`, `CalendarView`, `DashboardView`, `StatCard`, `ScoreCard`,
   `BarChart`) now carries an optional `id: str = ""`. When set, the engine renders it as the

@@ -195,6 +195,90 @@ class FormList:
 
 
 @dataclass(frozen=True, slots=True)
+class ListCardField:
+    """One labelled fact shown inside a :class:`ListCard` row-card.
+
+    * ``label`` — the human caption (e.g. "Device", "Last seen").
+    * ``value`` — the model column name whose per-row value is shown.
+    * ``format`` — an OPTIONAL core-owned formatter key applied to ``value`` before display:
+      ``"datetime"`` renders a timestamp readably; ``"browser"`` summarizes a raw user-agent string
+      into a short "Browser on OS" label and falls back to "Unknown device" when blank. ``""`` shows
+      the value verbatim. A value-leaf — no ``id`` (D5: only element-rendering container views carry
+      one; a field is content inside its card).
+    """
+
+    label: str
+    value: str
+    format: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("ListCardField.label is required")
+        if not self.value:
+            raise ValueError("ListCardField.value is required")
+
+
+@dataclass(frozen=True, slots=True)
+class ListCardAction:
+    """A per-card button on a :class:`ListCard` (e.g. Revoke). Unlike :class:`FormAction`, which
+    binds a handler callable to a generated route, a ``ListCardAction`` POSTs directly to a FIXED,
+    owner-declared route (``hx_post``) — the right shape when the owning unit (here core) already
+    owns a concrete endpoint. ``{id}`` in ``hx_post`` is filled with the row's id at render.
+
+    * ``label`` — the button text.
+    * ``hx_post`` — the POST path template; ``{id}`` → the row id (e.g.
+      ``/settings/sessions/{id}/revoke``).
+    * ``roles`` — render-time gate (L3): the button is HIDDEN unless the caller holds one of these
+      roles (empty = shown to anyone who can see the card).
+    * ``confirm`` — optional confirmation prompt text; when set the action asks before firing.
+    * ``variant`` — a visual intent key (e.g. ``"danger"`` for a destructive action like Revoke).
+    A value-leaf — no ``id`` (D5).
+    """
+
+    label: str
+    hx_post: str
+    roles: tuple[str, ...] = ()
+    confirm: str = ""
+    variant: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("ListCardAction.label is required")
+        if not self.hx_post:
+            raise ValueError("ListCardAction.hx_post is required")
+
+
+@dataclass(frozen=True, slots=True)
+class ListCard:
+    """A list rendered as ONE CARD PER ROW (not a table) — e.g. a user's active sessions. Each card
+    shows its ``fields`` (label/value facts) and ``actions`` (per-card buttons); ``onclick`` makes
+    the whole card navigate. The data model + binding mirror :class:`FormList`: ``model`` names the
+    related table and ``link`` the REF back to the parent, so core scopes the cards to the parent
+    record's rows, with optional extra ``filters``.
+
+    ``id`` is this view object's identity (ARCHITECTURE D5): the engine renders it as the card
+    container's DOM id and uses it as the htmx swap target, so a per-card action can re-render just
+    this card list. It MUST be set DISTINCTLY when the same ``ListCard`` is mounted in two places
+    (e.g. a self ``/settings`` tab and an admin user form) so one mount's swap can never
+    cross-target the other. Empty → the enclosing tab panel's id.
+    """
+
+    model: Any  # the row table (e.g. the Session TableModel)
+    fields: tuple[ListCardField, ...] = ()
+    actions: tuple[ListCardAction, ...] = ()
+    onclick: str = ""  # optional per-card nav path template (e.g. "/x/{id}"); "" = non-navigable
+    link: str = ""  # REF column on `model` -> parent table; "" = auto-detect the single REF
+    filters: tuple[Any, ...] = ()  # extra row filters (e.g. state == ACTIVE); core Filter grammar
+    order: int = 100
+    id: str = ""  # D5: card-list identity → DOM id + htmx swap target; "" = enclosing tab panel id
+    empty_label: str = "Nothing here yet."
+
+    def __post_init__(self) -> None:
+        if self.model is None:
+            raise ValueError("ListCard.model is required")
+
+
+@dataclass(frozen=True, slots=True)
 class FormTab:
     """One tab of a :class:`FormView`. Holds an ordered list of child views (``views``).
 
