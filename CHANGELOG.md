@@ -12,6 +12,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`TableModel.acl`** — permission-based table-ACL base (e.g. `"core.session"`). When set,
+  the store gate derives the required permission per op (`{acl}.read` for get/list/count;
+  `{acl}.create|update|delete` for writes) and checks the caller's effective permissions —
+  the same currency the route layer uses. Supersedes the op-blind role-tuple `role` field
+  (retained, deprecated, one release). For the core-table-acl-hardening feature.
 - **`ListCard` view descriptor** — a list rendered as one card per row (vs `ListView`'s
   table), with `ListCardField` (labelled facts, optional `datetime`/`browser` formatters) and
   `ListCardAction` (per-card buttons that POST to a fixed owner-declared route, role-gated,

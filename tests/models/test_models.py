@@ -104,3 +104,13 @@ def test_resolved_schema_column_names() -> None:
         soft_delete=False,
     )
     assert s.column_names() == ("id",)
+
+
+def test_model_acl_base() -> None:
+    # acl is an optional permission base; empty by default (open table).
+    assert TableModel(name="app_thing").acl == ""
+    gated = TableModel(name="core_session", acl="core.session")
+    assert gated.acl == "core.session"
+    # role (deprecated) still constructs alongside, for the one-release overlap.
+    legacy = TableModel(name="core_session", role=("core.session_manager",))
+    assert legacy.role == ("core.session_manager",)
