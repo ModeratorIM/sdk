@@ -77,6 +77,14 @@ EXPECTED_PUBLIC_API = {
     "FormOverview",
     "FormAction",
     "ViewExtension",
+    # dashboard visuals
+    "MetricSource",
+    "SeriesSource",
+    "StatCard",
+    "ScoreBand",
+    "ScoreCard",
+    "BarChart",
+    "DashboardView",
     # validation
     "Validator",
     "Required",

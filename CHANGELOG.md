@@ -12,6 +12,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **Dashboard-visuals widget descriptors** — `MetricSource` / `SeriesSource` (a widget's table
+  binding: `model` names the table like `PageView.model`, `filters` reuse the `Filter`/`FilterOp`
+  grammar, `agg`/`group_by`/`bucket` shape the aggregate), plus `StatCard`, `ScoreCard` + `ScoreBand`
+  (bounded-scale gauge with ordered threshold bands), `BarChart` and `DashboardView`. Server-rendered
+  SVG, no JS charting lib; count-only v1 (sum/avg/min/max and a store-side group-by await a future
+  `store.aggregate`). Core renders + resolves these in a follow-up. Also ships the `.mim-dashboard` /
+  `.mim-statcard` / `.mim-scorecard` / `.mim-barchart` CSS (all CSS-variable colors).
 - **`ModalView` + `ModalAction` + `ListView.select` + `FormTab.editor`** — modal set-editor. A
   `ModalView(view=…, label=…, actions=(ModalAction,…))` renders an inner view in a `<dialog>`; a
   `ModalAction` is like a `FormAction` but CLOSES the modal on completion (opener region refreshes).
