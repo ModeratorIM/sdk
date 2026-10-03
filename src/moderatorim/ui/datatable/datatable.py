@@ -212,12 +212,21 @@ class DataTable(Component):
 
     # ---- toolbar -----------------------------------------------------------
     def _search_box(self) -> Any:
+        # The search box id is PAGE-SPECIFIC (derived from region_id, which is the list region's
+        # id) rather than a global "mim-list-search". hx-preserve below matches purely by id: with
+        # a global id, navigating /users -> /roles (a full-body hx-swap) made htmx PRESERVE the old
+        # /users search box into the /roles page — so it kept the stale value AND its hx-get=/users,
+        # firing searches at the wrong resource until a hard refresh. A per-region id means the two
+        # pages' search boxes have different ids, so there is nothing to preserve across the nav,
+        # while within one page the region's own self-swap still preserves this element (keeps
+        # focus/caret while typing). Falls back to the stable name="q" the handler reads either way.
+        search_id = f"mim-list-search-{self.region_id}"
         return tag(
             "input",
             **{
                 "type": "search",
                 "name": "q",
-                "id": "mim-list-search",
+                "id": search_id,
                 "value": self.search.term if self.search else "",
                 "placeholder": "Search…",
                 "hx-get": self.base_path,
@@ -225,7 +234,8 @@ class DataTable(Component):
                 "hx-swap": "outerHTML",
                 "hx-trigger": "input changed delay:300ms",
                 # Lives inside the region it swaps (outerHTML), so hx-preserve keeps THIS element
-                # across the swap — otherwise the input is destroyed each keystroke, losing focus.
+                # across the region's own self-swap — otherwise the input is destroyed each
+                # keystroke, losing focus. The per-page id above stops it leaking across nav.
                 "hx-preserve": "true",
                 "class": "mim-list-search",
             },

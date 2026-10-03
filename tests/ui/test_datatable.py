@@ -69,9 +69,29 @@ def test_row_href_makes_the_row_clickable() -> None:
 
 def test_search_box_is_focus_safe() -> None:
     html = _table(search=SearchState(term="ab"))
-    assert 'id="mim-list-search"' in html
-    assert 'hx-preserve="true"' in html  # survives the region swap, keeps focus
+    # the search box id is PAGE-SPECIFIC (derived from region_id), not a global "mim-list-search",
+    # so hx-preserve can't carry it across a cross-page body swap.
+    assert 'id="mim-list-search-mim-list-region"' in html
+    assert 'hx-preserve="true"' in html  # survives the region's OWN self-swap, keeps focus
     assert 'value="ab"' in html
+    assert 'class="mim-list-search"' in html  # class unchanged (CSS selector still matches)
+
+
+def test_search_box_id_is_per_page_no_preserve_collision() -> None:
+    # Regression: searching on /users then navigating to /roles (a full-body hx-swap) must NOT
+    # preserve the /users search box into /roles. hx-preserve matches by id, so the two pages'
+    # search boxes must have DIFFERENT ids. Different region_ids => different search ids.
+    users = _table(
+        base_path="/admin/users", region_id="mim-list-region", search=SearchState(term="x")
+    )
+    roles = _table(base_path="/admin/roles", region_id="mim-roles-region", search=SearchState())
+    import re
+
+    uid = re.search(r'id="(mim-list-search-[^"]+)"', users).group(1)
+    rid = re.search(r'id="(mim-list-search-[^"]+)"', roles).group(1)
+    assert uid != rid  # no shared id => htmx has nothing to preserve across the nav
+    # and each box targets its OWN resource/region
+    assert 'hx-get="/admin/users"' in users and 'hx-get="/admin/roles"' in roles
 
 
 def test_filter_and_columns_slots_render_in_toolbar() -> None:
