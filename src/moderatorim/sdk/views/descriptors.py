@@ -422,19 +422,23 @@ class ViewModel:
 
 @dataclass(frozen=True, slots=True)
 class PageView:
-    """One page = one model + one root view (a :class:`ListView`, later a FormView / CalendarView).
+    """One page = one model + one root view (a :class:`ListView` / :class:`FormView` /
+    :class:`CalendarView`). A :class:`DashboardView` is the exception: it binds its tables
+    per-widget (each widget's ``source.model``), so ``model`` is omitted for one.
 
     Access ``roles`` live on the :class:`ViewRoute` binding, NOT here — the same PageView can be
     bound at several paths with different gates (list vs new vs edit)."""
 
-    model: object  # a TableModel; typed as object so the SDK view layer needn't import models
-    view: object  # a ListView (Stage 1); FormView / CalendarView later
+    view: object  # a ListView / FormView / CalendarView / DashboardView
+    model: object | None = None  # a TableModel; None only for a DashboardView (per-widget binding)
 
     def __post_init__(self) -> None:
-        if self.model is None:
-            raise ValueError("PageView.model is required")
         if self.view is None:
             raise ValueError("PageView.view is required")
+        # A DashboardView carries its tables on each widget's source.model, so it needs no page
+        # model; every other view type is bound to exactly one model.
+        if self.model is None and type(self.view).__name__ != "DashboardView":
+            raise ValueError("PageView.model is required (except for a DashboardView)")
 
 
 @dataclass(frozen=True, slots=True)
