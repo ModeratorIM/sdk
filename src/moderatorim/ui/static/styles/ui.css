@@ -423,3 +423,38 @@
   .mim-form-grid.cols-2, .mim-form-grid.cols-3 { grid-template-columns: 1fr; }
   .mim-form-field.span-2, .mim-form-field.span-3 { grid-column: span 1; }
 }
+
+/* Dashboard visuals (dashboard-visuals spec). Server-rendered; no JS. Reuses the BeerCSS .grid +
+   .card the form view already uses, plus the shared --mim-view-* / theme vars. Scoped under
+   .mim-dashboard — no global element bleed. */
+.mim-dashboard { gap: var(--mim-view-gap); align-items: stretch; }
+.mim-dashboard .card { padding: var(--mim-view-pad); border-radius: var(--mim-view-radius); }
+
+/* StatCard — one big number + label + optional delta. */
+.mim-statcard { display: flex; flex-direction: column; gap: 0.25rem; }
+.mim-stat-value { margin: 0; font-size: 2rem; line-height: 1.1; font-weight: 600; }
+.mim-stat-label { margin: 0; color: var(--on-surface-variant); font-size: 0.85rem; }
+.mim-stat-delta { margin: 0.25rem 0 0; font-size: 0.85rem; font-weight: 500; }
+.mim-stat-up { color: var(--primary); }
+.mim-stat-down { color: var(--error); }
+.mim-stat-neutral { color: var(--on-surface-variant); }
+
+/* ScoreCard — label, gauge bar, value/max, status. The gauge is a server-SVG rounded bar (v1). */
+.mim-scorecard { display: flex; flex-direction: column; gap: 0.4rem; }
+.mim-score-label { margin: 0; color: var(--on-surface-variant); font-size: 0.85rem; }
+.mim-gauge { display: block; width: 100%; height: 12px; }
+.mim-score-nums { margin: 0; }
+.mim-score-value { font-size: 1.5rem; font-weight: 600; }
+.mim-score-max { color: var(--on-surface-variant); font-size: 0.9rem; }
+.mim-score-status { margin: 0; font-size: 0.8rem; font-weight: 500; }
+
+/* BarChart — title + inline SVG bars. */
+.mim-barchart { display: flex; flex-direction: column; gap: 0.5rem; }
+.mim-chart-title { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.mim-chart-svg { display: block; width: 100%; }
+.mim-dashboard-empty { color: var(--on-surface-variant); font-size: 0.85rem; margin: 0; }
+
+@media (max-width: 640px) {
+  /* Stack every widget full-width on phones (BeerCSS collapses .grid, but force card spans too). */
+  .mim-dashboard .card { grid-column: 1 / -1 !important; }
+}
