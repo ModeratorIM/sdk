@@ -17,6 +17,7 @@ class Kind(Enum):
     )  # a generated model-driven List page (core expands it into a query→render handler)
     FORM = auto()  # a generated model-driven Form route (core expands it into a handler)
     CALENDAR = auto()  # a generated model-driven Calendar month page (core expands it)
+    DASHBOARD = auto()  # a generated DashboardView page of visual widgets (core expands it)
 
 
 @dataclass
@@ -233,6 +234,28 @@ class App:
     async def _unset_calendar_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
         raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
 
+    def dashboard_view(self, path: str, *, view: Any, permission: str) -> None:
+        """Record a generated Dashboard page (``Kind.DASHBOARD``) at ``path``, gated at
+        ``{permission}.read``. Core supplies the handler at build time (it resolves each widget's
+        ``source`` through ``ctx.store`` and renders the SVG grid). Unlike list/form/calendar there
+        is NO page ``model`` — a :class:`DashboardView`'s widgets each bind their own table via
+        ``source.model``."""
+        self._routes.append(
+            RouteDef(
+                path,
+                ("GET",),
+                handler=self._unset_dashboard_handler,
+                kind=Kind.DASHBOARD,
+                view=view,
+                permission=f"{permission}.read",
+                resource_permission=permission,
+            )
+        )
+
+    @staticmethod
+    async def _unset_dashboard_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
+        raise RuntimeError("Kind.DASHBOARD handler is supplied by core at build time")
+
     def expand_route(self, r: Any, *, default_permission: str | None = None) -> None:
         """Collect ONE declarative :class:`~moderatorim.sdk.Route` (declarative-routes design §2).
 
@@ -332,7 +355,7 @@ class App:
         objects with no decorators — the escape-hatch page for a screen the view generator cannot
         express.
         """
-        from moderatorim.sdk.views import CalendarView, FormView, ListView
+        from moderatorim.sdk.views import CalendarView, DashboardView, FormView, ListView
 
         seen_form_base: set[str] = set()
         for r in routes:
@@ -354,6 +377,12 @@ class App:
                 self.form_view(base, model=pv.model, view=inner, permission=perm)
             elif isinstance(inner, CalendarView):
                 self.calendar_view(r.path, model=pv.model, view=inner, permission=perm)
+            elif isinstance(inner, DashboardView):
+                start = len(self._routes)
+                self.dashboard_view(r.path, view=inner, permission=perm)
+                if override:
+                    for rd in self._routes[start:]:
+                        rd.permission = override
             else:  # pragma: no cover - guarded by PageView, but fail loud on a new view type
                 raise TypeError(f"ViewRoute at {r.path!r} has an unsupported view {type(inner)!r}")
 
