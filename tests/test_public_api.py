@@ -28,7 +28,8 @@ EXPECTED_PUBLIC_API = {
     "ID_FIELD",
     "SOFT_DELETE_FIELD",
     "ref",
-    "enum",
+    "choice",
+    "FieldChoice",
     "listref",
     "text",
     # datastore port

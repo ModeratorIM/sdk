@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from moderatorim.sdk import FieldType, TableColumn
+from moderatorim.sdk import FieldChoice, FieldType, TableColumn
 from moderatorim.ui import column_validators, render_column
 
 
@@ -34,9 +34,19 @@ def test_date_renders_date_input() -> None:
     assert 'type="date"' in _html(TableColumn(name="d", type=FieldType.DATE))
 
 
-def test_enum_renders_select_from_choices() -> None:
-    html = _html(TableColumn(name="status", type=FieldType.ENUM, choices=("open", "closed")))
-    assert "<select" in html and "open" in html and "closed" in html
+def test_choice_renders_select_from_choices() -> None:
+    html = _html(
+        TableColumn(
+            name="status",
+            type=FieldType.CHOICE,
+            choices=(
+                FieldChoice(value="open", label="Open"),
+                FieldChoice(value="closed", label="Closed"),
+            ),
+        )
+    )
+    # stored values + human labels both present; it is a <select>
+    assert "<select" in html and "open" in html and "Open" in html and "Closed" in html
 
 
 def test_ref_renders_select() -> None:
@@ -64,5 +74,11 @@ def test_column_validators_generated() -> None:
     vs = column_validators(TableColumn(name="n", type=FieldType.TEXT, required=True, max_length=20))
     names = [v.__class__.__name__ for v in vs]
     assert "Required" in names and "MaxLength" in names
-    enum_vs = column_validators(TableColumn(name="s", type=FieldType.ENUM, choices=("a", "b")))
-    assert "OneOf" in [v.__class__.__name__ for v in enum_vs]
+    choice_vs = column_validators(
+        TableColumn(
+            name="s",
+            type=FieldType.CHOICE,
+            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")),
+        )
+    )
+    assert "OneOf" in [v.__class__.__name__ for v in choice_vs]

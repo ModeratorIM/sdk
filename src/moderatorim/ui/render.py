@@ -39,8 +39,10 @@ def column_validators(column: TableColumn) -> list[Validator]:
         out.append(Required())
     if column.max_length is not None:
         out.append(MaxLength(column.max_length))
-    if column.type is FieldType.ENUM and column.choices:
-        out.append(OneOf(tuple(column.choices)))
+    if column.type is FieldType.CHOICE and column.choices:
+        # Validate against ACTIVE choice values; a retired (inactive) option is not offered to new
+        # input, so it is not an allowed submitted value here.
+        out.append(OneOf(tuple(c.value for c in column.choices if c.active)))
     return out
 
 
@@ -76,9 +78,17 @@ def render_column(
             disabled=column.read_only,
         )
 
-    if t is FieldType.ENUM:
-        opts = options or [(c, c) for c in column.choices]
-        return Select(column.name, opts, label=label, value="" if value is None else str(value))
+    if t is FieldType.CHOICE:
+        # (value, label) pairs from the active choices, ordered; the stored value is the option's
+        # `value`, the shown text is its `label`. An already-stored inactive value is still shown
+        # (so an edit does not silently drop it) by appending it when it is the current value.
+        active = sorted((c for c in column.choices if c.active), key=lambda c: c.order)
+        opts = options or [(c.value, c.label) for c in active]
+        cur = "" if value is None else str(value)
+        if cur and cur not in {v for v, _ in opts}:
+            match = next((c for c in column.choices if c.value == cur), None)
+            opts = [*opts, (cur, match.label if match else cur)]
+        return Select(column.name, opts, label=label, value=cur)
 
     if t is FieldType.REF:
         # A single relation picker == a select of candidate records (id, display).

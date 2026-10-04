@@ -30,6 +30,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   (the general form of the cross-page list-search fix). Value-leaf descriptors (`ScoreBand`,
   `ListCardField`, `Filter`, `Field`, …) deliberately have no `id`.
 
+### Removed
+- **`FieldType.ENUM` and the `enum()` constructor** — folded into `FieldType.CHOICE` /
+  `FieldChoice` / `choice()` (above). Stored values are unchanged (`CHOICE` stores the same
+  text), so no data migration; declarations migrate `enum("x", "a", "b")` →
+  `choice("x", FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B"))`.
+
 ### Changed / Deprecated
 - **`FormList.region_id` → `id`.** `region_id` is renamed to the uniform `id` (above). The old
   `region_id=` keyword is still accepted for ONE release — it maps to `id` and emits a
@@ -37,6 +43,15 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   to `FormList(id=…)`.
 
 ### Added
+- **`FieldType.CHOICE` + `FieldChoice` + `choice()`** — a structured static pick-list field,
+  replacing the string-only `ENUM`. `TableColumn.choices` is now a `tuple[FieldChoice, …]` where
+  each `FieldChoice(value, label, name="", active=True, order=0)` separates the STORED `value` from
+  the shown `label` (so a label renames without touching rows), carries a stable machine `name`
+  (defaults to `value`), an `active` flag to retire an option without a data migration, and an
+  `order` for dropdown sorting. Stored as `text` (the `value`), like the old ENUM. `choice(name,
+  *FieldChoice, …)` is the convenience constructor. The `<select>` widget shows `label`, submits
+  `value`, hides inactive options from new input (but still renders an already-stored inactive
+  value on edit), and `column_validators` emits `OneOf` over the active values.
 - **Dashboard-visuals widget descriptors** — `MetricSource` / `SeriesSource` (a widget's table
   binding: `model` names the table like `PageView.model`, `filters` reuse the `Filter`/`FilterOp`
   grammar, `agg`/`group_by`/`bucket` shape the aggregate), plus `StatCard`, `ScoreCard` + `ScoreBand`
