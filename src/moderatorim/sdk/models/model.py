@@ -15,6 +15,25 @@ from moderatorim.sdk.models.field import TableColumn
 ID_FIELD = "id"
 SOFT_DELETE_FIELD = "deleted_at"
 
+# Implicit audit columns, injected by the schema resolver (never hand-declared). created_* are set
+# once on insert; updated_* on every write. created_by/updated_by hold a user id ("" = system).
+CREATED_AT_FIELD = "created_at"
+CREATED_BY_FIELD = "created_by"
+UPDATED_AT_FIELD = "updated_at"
+UPDATED_BY_FIELD = "updated_by"
+
+# Names a model may not declare — all are managed by the core/backend.
+_RESERVED_COLUMN_NAMES = frozenset(
+    {
+        ID_FIELD,
+        SOFT_DELETE_FIELD,
+        CREATED_AT_FIELD,
+        CREATED_BY_FIELD,
+        UPDATED_AT_FIELD,
+        UPDATED_BY_FIELD,
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class TableModel:
@@ -40,7 +59,8 @@ class TableModel:
         unbypassable by apps.
       * ``soft_delete`` — if True (default), ``DataStore.delete`` is a soft delete.
 
-    Column names ``id`` and ``deleted_at`` are reserved (managed by the core/backend).
+    Column names ``id``, ``deleted_at``, ``created_at``, ``created_by``, ``updated_at`` and
+    ``updated_by`` are reserved (managed by the core/backend).
     """
 
     name: str
@@ -83,7 +103,7 @@ def _validate_columns(columns: tuple[TableColumn, ...]) -> None:
     for c in columns:
         if not isinstance(c, TableColumn):
             raise TypeError(f"column must be a TableColumn, got {type(c).__name__}")
-        if c.name in (ID_FIELD, SOFT_DELETE_FIELD):
+        if c.name in _RESERVED_COLUMN_NAMES:
             raise ValueError(f"column name {c.name!r} is reserved by the core")
         if c.name in seen:
             raise ValueError(f"duplicate column name {c.name!r}")

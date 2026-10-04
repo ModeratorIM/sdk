@@ -13,6 +13,7 @@ from moderatorim.sdk import (
     ResolvedSchema,
     TableColumn,
     TableModel,
+    assert_valid_override,
     choice,
     listref,
     ref,
@@ -90,6 +91,13 @@ def test_model_table_must_be_namespaced() -> None:
 def test_model_reserved_column_rejected() -> None:
     with pytest.raises(ValueError, match="reserved"):
         TableModel(name="app_thing", columns=(TableColumn(name="id", type=FieldType.TEXT),))
+    # the implicit audit columns are reserved too (view-column-resolution R1)
+    for reserved in ("deleted_at", "created_at", "created_by", "updated_at", "updated_by"):
+        with pytest.raises(ValueError, match="reserved"):
+            TableModel(
+                name="app_thing",
+                columns=(TableColumn(name=reserved, type=FieldType.DATETIME),),
+            )
 
 
 def test_model_display_cardinality() -> None:
@@ -132,3 +140,36 @@ def test_model_acl_base() -> None:
     # role (deprecated) still constructs alongside, for the one-release overlap.
     legacy = TableModel(name="core_session", role=("core.session_manager",))
     assert legacy.role == ("core.session_manager",)
+
+
+def test_assert_valid_override_allows_presentation_facets() -> None:
+    # A view override may re-skin: label/help/display/read_only/active — no raise.
+    assert_valid_override(
+        TableColumn(
+            name="email",
+            type=FieldType.TEXT,
+            label="Email address",
+            help="your login",
+            display=True,
+            read_only=True,
+        )
+    )
+
+
+def test_assert_valid_override_rejects_storage_facets() -> None:
+    # Setting any inherit-only (storage) facet on an override is rejected (R4/R5).
+    for bad in (
+        TableColumn(name="email", type=FieldType.TEXT, required=True),
+        TableColumn(name="email", type=FieldType.TEXT, unique=True),
+        TableColumn(name="email", type=FieldType.TEXT, max_length=320),
+        TableColumn(name="email", type=FieldType.TEXT, encrypt=True),
+        TableColumn(name="email", type=FieldType.TEXT, default="x"),
+        TableColumn(
+            name="tier",
+            type=FieldType.CHOICE,
+            choices=(FieldChoice(value="a", label="A"),),
+        ),
+        TableColumn(name="owner", type=FieldType.REF, relation="core_user"),
+    ):
+        with pytest.raises(ValueError, match="may not set storage facet"):
+            assert_valid_override(bad)
