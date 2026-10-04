@@ -30,6 +30,11 @@ from moderatorim.sdk.datastore import (
     Search,
     TableAccessDenied,
 )
+from moderatorim.sdk.i18n import (
+    Locale,
+    Translation,
+    TranslationSet,
+)
 from moderatorim.sdk.models import (
     CREATED_AT_FIELD,
     CREATED_BY_FIELD,
@@ -169,6 +174,9 @@ __all__ = [
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    "Locale",
+    "Translation",
+    "TranslationSet",
     # views (declarative model-driven view descriptors)
     "Field",
     "ListView",
