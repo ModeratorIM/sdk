@@ -174,6 +174,7 @@ class FormList:
     link: str = ""  # the REF column on `model` -> parent table; "" = auto-detect the single REF
     order: int = 100
     id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id (D5)
+    enrich: object = None  # optional async (ctx, rows) -> None: attach computed cells before render
     region_id: str = ""  # DEPRECATED alias of `id`; mapped in __post_init__ (remove next release)
 
     def __post_init__(self) -> None:
@@ -329,6 +330,46 @@ class FormAction:
             raise ValueError("FormAction.handler is required")
 
 
+@dataclass(frozen=True, slots=True)
+class StatusBadge:
+    """A record-derived status chip rendered in a form header, beside the Edit button.
+
+    PRESENTATION-ONLY and read-only: it reflects a column's value, it does not edit it. ``field``
+    is the record column to read; ``mapping`` maps a (coerced-to-str) value to ``(text, variant)``
+    where ``variant`` picks the themed colour. ``default`` applies when the value is missing or
+    unmapped.
+
+    Variants are theme tokens, NOT colours — core renders them as ``.mim-form-badge--<variant>`` and
+    the CSS draws them from the theme's success/surface/… variables, so a badge re-themes with the
+    app. Declared on :attr:`FormView.badges`.
+    """
+
+    label: str
+    field: str
+    mapping: dict[str, tuple[str, str]]  # value(str) -> (display_text, variant)
+    default: tuple[str, str] = ("—", "neutral")
+    order: int = 100
+
+    _VARIANTS = frozenset({"success", "neutral", "warn", "danger"})
+
+    def __post_init__(self) -> None:
+        if not self.label:
+            raise ValueError("StatusBadge.label is required")
+        if not self.field:
+            raise ValueError("StatusBadge.field is required")
+        for _text, variant in (*self.mapping.values(), self.default):
+            if variant not in self._VARIANTS:
+                raise ValueError(
+                    f"StatusBadge variant {variant!r} invalid; one of {sorted(self._VARIANTS)}"
+                )
+
+    def resolve(self, record: dict[str, Any] | None) -> tuple[str, str]:
+        """(text, variant) for ``record`` — the mapped pair, else ``default``."""
+        value = "" if not record else record.get(self.field)
+        key = "" if value is None else str(value)
+        return self.mapping.get(key, self.default)
+
+
 @runtime_checkable
 class FormSave(Protocol):
     """Optional save delegate for a :class:`FormView` (declarative-views save seam). An app
@@ -366,12 +407,17 @@ class FormView:
 
     tabs: tuple[FormTab, ...] = ()
     actions: tuple[FormAction, ...] = ()
+    badges: tuple[StatusBadge, ...] = ()  # record-status chips beside Edit (presentation-only)
     save: FormSave | None = None
     id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     def __post_init__(self) -> None:
         if not self.tabs:
             raise ValueError("FormView requires at least one FormTab")
+
+    @property
+    def ordered_badges(self) -> tuple[StatusBadge, ...]:
+        return tuple(sorted(self.badges, key=lambda b: b.order))
 
     @property
     def ordered_tabs(self) -> tuple[FormTab, ...]:

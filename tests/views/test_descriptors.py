@@ -4,7 +4,16 @@ from __future__ import annotations
 
 import pytest
 
-from moderatorim.sdk import Field, FieldType, ListView, PageView, TableColumn, ViewModel, ViewRoute
+from moderatorim.sdk import (
+    Field,
+    FieldType,
+    ListView,
+    PageView,
+    StatusBadge,
+    TableColumn,
+    ViewModel,
+    ViewRoute,
+)
 
 
 def test_viewmodel_read_surface_mirrors_tablemodel() -> None:
@@ -647,3 +656,31 @@ def test_custom_get_page_is_a_route_via_mount_pages() -> None:
     rd = next(r for r in app.routes if r.path == "/admin")
     assert rd.kind is Kind.PAGE and rd.methods == ("GET",)
     assert rd.handler is home and rd.title == "Admin" and rd.permission == "admin.users.read"
+
+
+# --- StatusBadge (admin-users-form R4) -------------------------------------
+
+
+def test_status_badge_resolve_maps_value_and_falls_back() -> None:
+    b = StatusBadge(
+        label="Verification",
+        field="email_verified",
+        mapping={"True": ("Verified", "success"), "False": ("Unverified", "neutral")},
+    )
+    assert b.resolve({"email_verified": True}) == ("Verified", "success")
+    assert b.resolve({"email_verified": False}) == ("Unverified", "neutral")
+    # missing record / missing field / unmapped value → default
+    assert b.resolve(None) == ("—", "neutral")
+    assert b.resolve({}) == ("—", "neutral")
+
+
+def test_status_badge_rejects_unknown_variant() -> None:
+    with pytest.raises(ValueError, match="variant"):
+        StatusBadge(label="X", field="f", mapping={"1": ("On", "purple")})
+
+
+def test_status_badge_requires_label_and_field() -> None:
+    with pytest.raises(ValueError):
+        StatusBadge(label="", field="f", mapping={})
+    with pytest.raises(ValueError):
+        StatusBadge(label="X", field="", mapping={})
