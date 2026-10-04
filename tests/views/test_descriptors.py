@@ -195,7 +195,12 @@ def test_list_card() -> None:
 
     field = ListCardField(label="Device", value="user_agent", format="browser")
     assert field.label == "Device" and field.value == "user_agent" and field.format == "browser"
+    assert field.icon == ""  # icon defaults to empty (no leading glyph)
     assert not hasattr(field, "id")  # value-leaf — no D5 id
+
+    # icon round-trips when set (Material Symbols glyph before the value)
+    iconed = ListCardField(label="IP", value="ip", icon="lan")
+    assert iconed.icon == "lan"
 
     action = ListCardAction(
         label="Revoke",

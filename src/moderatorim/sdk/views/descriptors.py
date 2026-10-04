@@ -198,11 +198,15 @@ class ListCardField:
       into a short "Browser on OS" label and falls back to "Unknown device" when blank. ``""`` shows
       the value verbatim. A value-leaf — no ``id`` (D5: only element-rendering container views carry
       one; a field is content inside its card).
+    * ``icon`` — an OPTIONAL Material Symbols glyph name (e.g. ``"lan"``, ``"devices"``) rendered as
+      a leading icon before the value. ``""`` (default) renders no icon — the field shows its label
+      and value only.
     """
 
     label: str
     value: str
     format: str = ""
+    icon: str = ""
 
     def __post_init__(self) -> None:
         if not self.label:
