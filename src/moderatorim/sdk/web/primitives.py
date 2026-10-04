@@ -72,6 +72,13 @@ class Ctx:
     can: Callable[[str], bool] = field(default=lambda _p: False)
     has_role: Callable[[str], bool] = field(default=lambda _r: False)
     authz: Any | None = None
+    # Active locale (i18n spec §3) — the BCP-47 code core resolved for this request (cookie →
+    # user pref → Accept-Language → instance default). Default "en" until the Stage-2 resolver sets
+    # it per request. Also the <html lang> value.
+    lang: str = "en"
+    # Translate a message key to `lang` with {param} interpolation (i18n spec §4). Core injects the
+    # real engine; the default returns the key itself so a missing engine never yields a blank.
+    t: Callable[..., str] = field(default=lambda key, **_p: str(key))
     _set_session: str | None = field(default=None, repr=False)
     _clear_session: bool = field(default=False, repr=False)
     _extra_cookies: list[tuple[str, str, str, int | None]] = field(default_factory=list, repr=False)

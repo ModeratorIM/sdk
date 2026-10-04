@@ -64,6 +64,10 @@ EXPECTED_PUBLIC_API = {
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    # i18n
+    "Locale",
+    "Translation",
+    "TranslationSet",
     # views
     "Field",
     "ListView",

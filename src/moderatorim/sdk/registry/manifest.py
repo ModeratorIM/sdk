@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from moderatorim.sdk.i18n import Locale
 from moderatorim.sdk.models import Extends, TableModel
 
 if TYPE_CHECKING:  # pragma: no cover - typing only (avoid a runtime import cycle)
@@ -117,6 +118,12 @@ class Manifest:
     provides: tuple[str, ...] = ()
     models: tuple[TableModel, ...] = ()
     extends: tuple[Extends, ...] = ()
+    # Languages this unit ships (i18n spec §11): the locales whose `languages/{code}.json` catalogs
+    # core loads + seeds for this unit. An optional per-unit default MAY be named but is only a
+    # hint — an empty/absent default defers to the instance's core `default_locale`; the manifest
+    # never overrides the instance default. Declaration != activation: a locale the instance has
+    # not enabled is simply unused (no error). Endonym + flag come from core's own map, not here.
+    locales: tuple[Locale, ...] = ()
     # Declarative event subscriptions (design §1): each Subscription(kind, factory) is wired at
     # boot — core calls factory(core) and subscribes the returned handler to kind. Replaces the
     # imperative register(core) + bus.subscribe(...) boilerplate (register is now optional).

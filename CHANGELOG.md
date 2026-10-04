@@ -12,6 +12,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **i18n declaration contract** — `Locale(code)`, `Translation(key, language, value)`, and
+  `TranslationSet(source, dir, entries)` descriptors (a unit DECLARES translatable strings; core's
+  engine RENDERS them). `TranslationSet(dir=...)` reads `translations/languages/{code}.json`
+  catalogs; `Manifest.locales` declares the languages a unit ships; `Ctx.lang` + `Ctx.t(key,
+  **params)` expose the active locale and the translate callable on the request context (engine in
+  core). First piece of the i18n feature (Stage 1).
 - **`ChoiceSource`** — a render-time options source for a `FieldType.CHOICE` column. Where
   `FieldChoice` is a static pick-list, `ChoiceSource(model, column)` sources a CHOICE field's
   options from the DISTINCT values of a column on an existing table, resolved by core when the form
