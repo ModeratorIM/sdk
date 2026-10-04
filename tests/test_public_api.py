@@ -34,6 +34,7 @@ EXPECTED_PUBLIC_API = {
     "ref",
     "choice",
     "FieldChoice",
+    "ChoiceSource",
     "assert_valid_override",
     "OVERRIDABLE_FACETS",
     "INHERIT_ONLY_FACETS",

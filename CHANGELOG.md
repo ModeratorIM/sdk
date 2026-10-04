@@ -12,6 +12,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`ChoiceSource`** — a render-time options source for a `FieldType.CHOICE` column. Where
+  `FieldChoice` is a static pick-list, `ChoiceSource(model, column)` sources a CHOICE field's
+  options from the DISTINCT values of a column on an existing table, resolved by core when the form
+  renders and validated strictly server-side. For "pick from the values that already exist" fields
+  (e.g. a role's `source` picked from the distinct `app` values in the permission catalog) so a
+  free-typed value cannot introduce a typo. A CHOICE column now takes **either** `choices` **or**
+  `choices_source` (not both, not neither).
 - **`FormList.enrich`** — optional ``async (ctx, rows) -> None`` hook on an embedded form list,
   applied by core after the rows are fetched and before render, so a view's ``Field.custom`` cell
   can show a computed value (e.g. a membership's derived role names). For the admin-users-form

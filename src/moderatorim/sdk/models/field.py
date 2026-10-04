@@ -54,6 +54,35 @@ class FieldChoice:
         return self.name or self.value
 
 
+@dataclass(frozen=True, slots=True)
+class ChoiceSource:
+    """A render-time options source for a :data:`FieldType.CHOICE` column.
+
+    Where :class:`FieldChoice` is a STATIC, compile-time pick-list, a ``ChoiceSource`` makes a
+    CHOICE field's options come from LIVE DATA — the DISTINCT values of a column on an existing
+    table — resolved when the form renders. Use it for "pick from the values that already exist"
+    fields (e.g. a role's ``source`` picked from the distinct ``app`` values in the permission
+    catalog) so a free-typed value can never introduce a typo.
+
+    Declarative + strict: the column declares WHERE its options come from; the form sink resolves
+    the distinct set at render time and validates a submitted value against that live set (an input
+    outside it is rejected server-side). The option ``value`` and ``label`` are the raw distinct
+    value.
+
+    * ``model`` — the physical table name to read (e.g. ``core_app_permission``).
+    * ``column`` — the column whose DISTINCT values become the options (e.g. ``app``).
+    """
+
+    model: str
+    column: str
+
+    def __post_init__(self) -> None:
+        if not self.model:
+            raise ValueError("ChoiceSource.model must be non-empty")
+        if not self.column:
+            raise ValueError("ChoiceSource.column must be non-empty")
+
+
 class FieldType(Enum):
     """The backend-neutral field-type vocabulary. An invalid member fails at import."""
 
@@ -92,6 +121,7 @@ class TableColumn:
     default: Any = None
     relation: str | None = None  # for REF/LISTREF: the target table name (app-namespaced)
     choices: tuple[FieldChoice, ...] = ()  # for CHOICE: the allowed options (value/label/active/…)
+    choices_source: ChoiceSource | None = None  # for CHOICE: resolve options from live data instead
     max_length: int | None = None  # for TEXT/TEXTAREA: VARCHAR(n), validated on save
     encrypt: bool = False  # at-rest encryption, store-honored
     active: bool = True  # shown in the UI (False = hidden from views/forms, NOT dropped)
@@ -113,13 +143,21 @@ class TableColumn:
             raise ValueError(f"`relation` is only valid on a REF/LISTREF column ({self.name!r})")
 
         if self.type is FieldType.CHOICE:
-            if not self.choices:
-                raise ValueError(f"CHOICE column {self.name!r} requires non-empty `choices`")
+            if not self.choices and self.choices_source is None:
+                raise ValueError(
+                    f"CHOICE column {self.name!r} requires either `choices` or `choices_source`"
+                )
+            if self.choices and self.choices_source is not None:
+                raise ValueError(
+                    f"CHOICE column {self.name!r} cannot set both `choices` and `choices_source`"
+                )
             values = [c.value for c in self.choices]
             if len(values) != len(set(values)):
                 raise ValueError(f"CHOICE column {self.name!r} has duplicate choice values")
         elif self.choices:
             raise ValueError(f"`choices` is only valid on a CHOICE column ({self.name!r})")
+        if self.type is not FieldType.CHOICE and self.choices_source is not None:
+            raise ValueError(f"`choices_source` is only valid on a CHOICE column ({self.name!r})")
 
         if self.max_length is not None and self.type not in _STRING_TYPES:
             raise ValueError(f"`max_length` is only valid on TEXT/TEXTAREA ({self.name!r})")
