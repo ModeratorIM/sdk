@@ -12,6 +12,16 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **View override-facet rule** — `assert_valid_override(delta)` plus `OVERRIDABLE_FACETS`
+  (`label`/`help`/`display`/`read_only`/`active`) and `INHERIT_ONLY_FACETS` (`relation`/`choices`/
+  `required`/`unique`/`max_length`/`encrypt`/`default`/`source`). A view may re-skin a column it
+  references but not redefine its storage shape; a `ViewModel` override that sets an inherit-only
+  facet fails loud. Consumed by the core view-column resolver. For view-column-resolution R4.
+- **Implicit audit columns** — `CREATED_AT_FIELD` / `CREATED_BY_FIELD` / `UPDATED_AT_FIELD` /
+  `UPDATED_BY_FIELD` constants, and these four names reserved on `TableModel` (a model declaring
+  one fails loud). The core schema resolver injects them on every table beside `id`/`deleted_at`
+  (`created_*`/`updated_*`: DATETIME; `*_by`: TEXT user-id, `""` = system), set by the write path,
+  never client-settable. For the view-column-resolution feature.
 - **`TableModel.acl`** — permission-based table-ACL base (e.g. `"core.session"`). When set,
   the store gate derives the required permission per op (`{acl}.read` for get/list/count;
   `{acl}.create|update|delete` for writes) and checks the caller's effective permissions —
