@@ -174,6 +174,7 @@ class FormList:
     link: str = ""  # the REF column on `model` -> parent table; "" = auto-detect the single REF
     order: int = 100
     id: str = ""  # explicit htmx refresh target id; defaults to the tab panel id (D5)
+    enrich: object = None  # optional async (ctx, rows) -> None: attach computed cells before render
     region_id: str = ""  # DEPRECATED alias of `id`; mapped in __post_init__ (remove next release)
 
     def __post_init__(self) -> None:
