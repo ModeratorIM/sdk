@@ -92,24 +92,16 @@ class ListView:
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
-    # Multi-select set-editor mode (tabbed-form-subviews §7): when "multi", the list renders a
-    # leading checkbox column (rows pre-checked by the caller's current set) so it can be used
-    # inside a ModalView as a "pick the members" editor whose Save submits the checked keys. ""
-    # (default) is an ordinary navigable list.
-    select: str = ""
-    # The column whose value is the checkbox's submitted key when select="multi" (defaults to the
-    # display column). For roles' permission picker this is "permission".
+    # The column whose value is the checkbox's submitted key when `multiselect` is set (defaults
+    # to the display column). For roles' permission picker this is "permission".
     select_key: str = ""
-    # multiselect: the ergonomic public flag — render a leading checkbox column in the list itself
-    # (DataTable), so the ListView can be used as a set editor. Equivalent to select="multi"; either
-    # turns the checkbox column on. The checkbox value comes from `select_key` (else the row id).
+    # multiselect: render a leading checkbox column in the list itself (DataTable), so the ListView
+    # can be used as a set editor inside a ModalView ("pick the members"), rows pre-checked by the
+    # caller's current set and Save submitting the checked keys (tabbed-form-subviews §7). The
+    # checkbox value comes from `select_key` (else the row id). False (default) is an ordinary
+    # navigable list.
     multiselect: bool = False
     id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
-
-    @property
-    def is_multiselect(self) -> bool:
-        """True when the list should render its checkbox column (new flag OR legacy select)."""
-        return self.multiselect or self.select == "multi"
 
     def __post_init__(self) -> None:
         if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):
@@ -467,7 +459,7 @@ class ModalView:
     controls (a modal action closes the dialog on completion). Opened by a permission-driven Edit
     control on the tab that declares it as its ``editor``.
 
-    ``view`` is typically a :class:`ListView` with ``select="multi"`` (a set-editor), or a
+    ``view`` is typically a :class:`ListView` with ``multiselect=True`` (a set-editor), or a
     :class:`FormView` (edit a related record in a modal). ``label`` names the modal (trigger text /
     dialog title).
     """

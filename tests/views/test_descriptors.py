@@ -122,9 +122,9 @@ def test_form_descriptors() -> None:
 def test_modalview_and_modalaction() -> None:
     from moderatorim.sdk import FormTab, ListView, ModalAction, ModalView
 
-    # ListView select mode
-    lv = ListView(fields=(), select="multi", select_key="permission")
-    assert lv.select == "multi" and lv.select_key == "permission"
+    # ListView multiselect (set-editor) mode
+    lv = ListView(fields=(), multiselect=True, select_key="permission")
+    assert lv.multiselect is True and lv.select_key == "permission"
 
     # ModalAction requires label + handler
     import pytest
