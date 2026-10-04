@@ -7,12 +7,13 @@ import pytest
 
 from moderatorim.sdk import (
     Extends,
+    FieldChoice,
     FieldType,
     ResolvedColumn,
     ResolvedSchema,
     TableColumn,
     TableModel,
-    enum,
+    choice,
     listref,
     ref,
 )
@@ -39,10 +40,22 @@ def test_listref_requires_relation() -> None:
         TableColumn(name="r", type=FieldType.LISTREF)
 
 
-def test_column_enum_invariants() -> None:
-    assert enum("status", "a", "b").choices == ("a", "b")
-    with pytest.raises(ValueError, match="ENUM column"):
-        TableColumn(name="s", type=FieldType.ENUM)
+def test_column_choice_invariants() -> None:
+    assert choice(
+        "status", FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")
+    ).choices == (
+        FieldChoice(value="a", label="A"),
+        FieldChoice(value="b", label="B"),
+    )
+    with pytest.raises(ValueError, match="CHOICE column"):
+        TableColumn(name="s", type=FieldType.CHOICE)
+    # duplicate choice values are rejected
+    with pytest.raises(ValueError, match="duplicate choice values"):
+        TableColumn(
+            name="s",
+            type=FieldType.CHOICE,
+            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="a", label="A2")),
+        )
 
 
 def test_max_length_only_on_text() -> None:
@@ -55,8 +68,13 @@ def test_default_type_consistency() -> None:
     assert TableColumn(name="b", type=FieldType.BOOLEAN, default=False).default is False
     with pytest.raises(ValueError, match="BOOLEAN"):
         TableColumn(name="b", type=FieldType.BOOLEAN, default="yes")
-    with pytest.raises(ValueError, match="not in choices"):
-        TableColumn(name="s", type=FieldType.ENUM, choices=("a", "b"), default="c")
+    with pytest.raises(ValueError, match="not in choice values"):
+        TableColumn(
+            name="s",
+            type=FieldType.CHOICE,
+            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")),
+            default="c",
+        )
 
 
 def test_model_table_must_be_namespaced() -> None:

@@ -17,6 +17,43 @@ from enum import Enum
 from typing import Any
 
 
+@dataclass(frozen=True, slots=True)
+class FieldChoice:
+    """One option of a :data:`FieldType.CHOICE` column — a structured static pick-list entry.
+
+    Unlike a bare string, a choice separates what is STORED from what is SHOWN:
+
+    * ``value`` — the stable identity written to the column (``core_user.type == "user"``). Never
+      changes once rows reference it; this is what a ``CHOICE`` column stores (as text).
+    * ``label`` — the human text shown in the dropdown. Renameable freely without touching stored
+      rows, because rows hold ``value``, not ``label``.
+    * ``name`` — an optional stable machine key for code comparisons (defaults to ``value``).
+    * ``active`` — ``True`` by default. ``False`` RETIRES the option: it is hidden from new
+      selections but a row already holding it stays valid (that is the whole point over an ENUM —
+      you can drop an option without a data migration).
+    * ``order`` — dropdown ordering, independent of ``value``/``label``.
+    """
+
+    value: str
+    label: str
+    name: str = ""
+    active: bool = True
+    order: int = 0
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise ValueError("FieldChoice.value must be non-empty")
+        if not self.label:
+            raise ValueError(f"FieldChoice {self.value!r} requires a non-empty label")
+        if not self.name:
+            object.__setattr__(self, "name", self.value)  # default the machine key to value
+
+    @property
+    def key(self) -> str:
+        """The stable machine key (``name``, falling back to ``value``)."""
+        return self.name or self.value
+
+
 class FieldType(Enum):
     """The backend-neutral field-type vocabulary. An invalid member fails at import."""
 
@@ -28,7 +65,7 @@ class FieldType(Enum):
     DATE = "date"
     DATETIME = "datetime"
     OBJECT = "object"  # arbitrary JSON blob -> JSONB
-    ENUM = "enum"  # one of a fixed set of string choices (see TableColumn.choices)
+    CHOICE = "choice"  # structured static pick-list (see TableColumn.choices -> FieldChoice tuple)
     REF = "ref"  # reference to ONE record (see TableColumn.relation -> table name)
     LISTREF = "listref"  # list of references (many-to-many) -> auto join table
 
@@ -54,7 +91,7 @@ class TableColumn:
     index: bool = False
     default: Any = None
     relation: str | None = None  # for REF/LISTREF: the target table name (app-namespaced)
-    choices: tuple[str, ...] = ()  # for ENUM: the allowed string choices
+    choices: tuple[FieldChoice, ...] = ()  # for CHOICE: the allowed options (value/label/active/…)
     max_length: int | None = None  # for TEXT/TEXTAREA: VARCHAR(n), validated on save
     encrypt: bool = False  # at-rest encryption, store-honored
     active: bool = True  # shown in the UI (False = hidden from views/forms, NOT dropped)
@@ -75,10 +112,14 @@ class TableColumn:
         if self.type not in _REF_TYPES and self.relation is not None:
             raise ValueError(f"`relation` is only valid on a REF/LISTREF column ({self.name!r})")
 
-        if self.type is FieldType.ENUM and not self.choices:
-            raise ValueError(f"ENUM column {self.name!r} requires non-empty `choices`")
-        if self.type is not FieldType.ENUM and self.choices:
-            raise ValueError(f"`choices` is only valid on an ENUM column ({self.name!r})")
+        if self.type is FieldType.CHOICE:
+            if not self.choices:
+                raise ValueError(f"CHOICE column {self.name!r} requires non-empty `choices`")
+            values = [c.value for c in self.choices]
+            if len(values) != len(set(values)):
+                raise ValueError(f"CHOICE column {self.name!r} has duplicate choice values")
+        elif self.choices:
+            raise ValueError(f"`choices` is only valid on a CHOICE column ({self.name!r})")
 
         if self.max_length is not None and self.type not in _STRING_TYPES:
             raise ValueError(f"`max_length` is only valid on TEXT/TEXTAREA ({self.name!r})")
@@ -105,8 +146,11 @@ def _check_default_type(col: TableColumn) -> None:
         raise ValueError(f"FLOAT column {col.name!r} default must be a number, got {d!r}")
     if t in _STRING_TYPES and not isinstance(d, str):
         raise ValueError(f"{t.name} column {col.name!r} default must be a str, got {d!r}")
-    if t is FieldType.ENUM and d not in col.choices:
-        raise ValueError(f"ENUM column {col.name!r} default {d!r} not in choices {col.choices}")
+    if t is FieldType.CHOICE and d not in {c.value for c in col.choices}:
+        raise ValueError(
+            f"CHOICE column {col.name!r} default {d!r} not in choice values "
+            f"{tuple(c.value for c in col.choices)}"
+        )
 
 
 def text(name: str, *, required: bool = False, unique: bool = False, **kw: Any) -> TableColumn:
@@ -128,13 +172,17 @@ def listref(name: str, table: str, **kw: Any) -> TableColumn:
     return TableColumn(name=name, type=FieldType.LISTREF, relation=table, **kw)
 
 
-def enum(
-    name: str, *choices: str, required: bool = False, default: Any = None, **kw: Any
+def choice(
+    name: str,
+    *choices: FieldChoice,
+    required: bool = False,
+    default: Any = None,
+    **kw: Any,
 ) -> TableColumn:
-    """Convenience constructor for an ENUM column."""
+    """Convenience constructor for a CHOICE column (structured static pick-list)."""
     return TableColumn(
         name=name,
-        type=FieldType.ENUM,
+        type=FieldType.CHOICE,
         choices=tuple(choices),
         required=required,
         default=default,
