@@ -87,6 +87,7 @@ EXPECTED_PUBLIC_API = {
     "ListCardField",
     "FormOverview",
     "FormAction",
+    "StatusBadge",
     "ViewExtension",
     # dashboard visuals
     "MetricSource",

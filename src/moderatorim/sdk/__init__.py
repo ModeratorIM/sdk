@@ -104,6 +104,7 @@ from moderatorim.sdk.views import (
     ScoreCard,
     SeriesSource,
     StatCard,
+    StatusBadge,
     ViewExtension,
     ViewModel,
     ViewRoute,
@@ -197,6 +198,7 @@ __all__ = [
     "ListCardField",
     "FormOverview",
     "FormAction",
+    "StatusBadge",
     "ViewExtension",
     # validation (declare-once: render HTML hints + enforce server-side)
     "Validator",

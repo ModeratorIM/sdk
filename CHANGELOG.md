@@ -12,6 +12,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [0.3.0] — unreleased
 
 ### Added
+- **`StatusBadge` form-header chip** — `StatusBadge(label, field, mapping, default, order)`, a
+  presentation-only, read-only status chip declared on `FormView.badges`. Reflects a record column
+  (`field`) via `mapping` of value → `(text, variant)` where `variant` ∈ `success`/`neutral`/`warn`/
+  `danger` is a theme token (not a colour); core renders it beside the Edit button. For the
+  admin-users-form feature (Verification / MFA status).
 - **View override-facet rule** — `assert_valid_override(delta)` plus `OVERRIDABLE_FACETS`
   (`label`/`help`/`display`/`read_only`/`active`) and `INHERIT_ONLY_FACETS` (`relation`/`choices`/
   `required`/`unique`/`max_length`/`encrypt`/`default`/`source`). A view may re-skin a column it
