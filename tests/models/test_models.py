@@ -59,6 +59,40 @@ def test_column_choice_invariants() -> None:
         )
 
 
+def test_choice_source_dynamic_options() -> None:
+    from moderatorim.sdk import ChoiceSource
+
+    # a CHOICE column may source its options from live data instead of a static pick-list
+    col = TableColumn(
+        name="source",
+        type=FieldType.CHOICE,
+        choices_source=ChoiceSource(model="core_app_permission", column="app"),
+    )
+    assert col.choices_source == ChoiceSource(model="core_app_permission", column="app")
+    assert col.choices == ()
+
+    # cannot set both static choices and a dynamic source
+    with pytest.raises(ValueError, match="cannot set both"):
+        TableColumn(
+            name="s",
+            type=FieldType.CHOICE,
+            choices=(FieldChoice(value="a", label="A"),),
+            choices_source=ChoiceSource(model="m", column="c"),
+        )
+
+    # choices_source is only valid on a CHOICE column
+    with pytest.raises(ValueError, match="only valid on a CHOICE"):
+        TableColumn(
+            name="s", type=FieldType.TEXT, choices_source=ChoiceSource(model="m", column="c")
+        )
+
+    # ChoiceSource requires non-empty model + column
+    with pytest.raises(ValueError, match="model must be non-empty"):
+        ChoiceSource(model="", column="c")
+    with pytest.raises(ValueError, match="column must be non-empty"):
+        ChoiceSource(model="m", column="")
+
+
 def test_max_length_only_on_text() -> None:
     assert TableColumn(name="n", type=FieldType.TEXT, max_length=200).max_length == 200
     with pytest.raises(ValueError, match="max_length"):

@@ -4,6 +4,7 @@ resolved schema."""
 from moderatorim.sdk.models.field import (
     INHERIT_ONLY_FACETS,
     OVERRIDABLE_FACETS,
+    ChoiceSource,
     FieldChoice,
     FieldType,
     TableColumn,
@@ -29,6 +30,7 @@ __all__ = [
     "TableColumn",
     "FieldType",
     "FieldChoice",
+    "ChoiceSource",
     "text",
     "ref",
     "listref",
