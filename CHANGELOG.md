@@ -9,6 +9,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **`ChoiceReference.where`** — optional equality filters `((column, value), ...)` scoping which
+  rows a dynamic CHOICE offers (e.g. `where=(("active", True),)` to offer only active catalog rows).
+  Backward-compatible (default `()` = no filter); the consuming sink applies it at resolve + save.
+
 ## [0.3.0] — unreleased
 
 ### Removed

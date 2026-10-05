@@ -78,6 +78,17 @@ def test_choice_source_dynamic_options() -> None:
     assert isinstance(lc.choices, ChoiceReference)
     assert lc.choices.label_column == "name"
 
+    # where: equality filters scope which rows are offered (e.g. only active catalog rows)
+    wf = TableColumn(
+        name="language",
+        type=FieldType.CHOICE,
+        choices=ChoiceReference(
+            model="core_language", column="code", label_column="name", where=(("active", True),)
+        ),
+    )
+    assert isinstance(wf.choices, ChoiceReference)
+    assert wf.choices.where == (("active", True),)
+
     # a CHOICE column still requires `choices` (a Choice tuple or a ChoiceReference)
     with pytest.raises(ValueError, match="requires `choices`"):
         TableColumn(name="s", type=FieldType.CHOICE)
