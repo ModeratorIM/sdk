@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from moderatorim.sdk.models.field import TableColumn
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class CalendarView:
     """A month calendar over a model (design §6). Renders records as events positioned by a
     DATE/DATETIME ``start_field``; ``title_field`` is the event label; optional ``end_field`` spans
@@ -33,7 +33,7 @@ class CalendarView:
             raise ValueError("CalendarView.title_field (the event label field) is required")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ViewModel:
     """A READ-ONLY reference to a table a view reads — NOT a model declaration.
 
@@ -69,7 +69,7 @@ class ViewModel:
         return tail.replace("_", " ").title()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class PageView:
     """One page = one model + one root view (a :class:`ListView` / :class:`FormView` /
     :class:`CalendarView`). A :class:`DashboardView` is the exception: it binds its tables

@@ -59,7 +59,7 @@ class Field:
         return self.custom is not None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormOverview:
     """A form child view: the record header (display-name + status). Empty on the create form."""
 

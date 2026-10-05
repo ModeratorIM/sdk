@@ -95,7 +95,7 @@ class AuthMethod:
             )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Manifest:
     """A unit's self-declaration.
 

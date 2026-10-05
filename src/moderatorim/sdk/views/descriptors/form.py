@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from moderatorim.sdk.views.descriptors.list_ import ListView
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormFields:
     """A form child view: renders the record's OWN fields in a ``columns``-wide grid.
 
@@ -33,7 +33,7 @@ class FormFields:
             raise ValueError("FormFields.columns must be >= 1")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormList:
     """A form child view: an embedded list of a RELATED model inside a tab (tabbed-form-subviews
     §2). Unlike ``FormFields`` (which renders the record's own columns), a ``FormList`` renders rows
@@ -79,7 +79,7 @@ class FormList:
             )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormTab:
     """One tab of a :class:`FormView`. Holds an ordered list of child views (``views``).
 
@@ -113,7 +113,7 @@ class FormTab:
         return tuple(sorted(self.actions, key=lambda a: a.order))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormAction:
     """A declared button on a form, invoking ``handler`` (a ``@app.action``-style callable) — gated
     by ``roles`` at render (layer 3). E.g. the admin super-user toggle."""
@@ -130,7 +130,7 @@ class FormAction:
             raise ValueError("FormAction.handler is required")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class StatusBadge:
     """A record-derived status chip rendered in a form header, beside the Edit button.
 
@@ -191,7 +191,7 @@ class FormSave(Protocol):
     async def delete(self, ctx: Any, model: Any, record_id: str) -> None: ...
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormView:
     """A single root form view composed of :class:`FormTab`s (ordered) + declared ``actions``.
 
@@ -240,7 +240,7 @@ class FormView:
         return tuple(out)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ModalAction:
     """A declared button in a :class:`ModalView`'s header. Like :class:`FormAction`, but its
     completion CLOSES the modal (and the opener refreshes its region). Used for the modal's Save in
@@ -259,7 +259,7 @@ class ModalAction:
             raise ValueError("ModalAction.handler is required")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ModalView:
     """A dialog container that renders an inner ``view`` in a ``<dialog class="modal">``
     (tabbed-form-subviews §7). Like :class:`FormView`/:class:`FormTab`, it is a pure CONTAINER — the
@@ -293,7 +293,7 @@ class ModalView:
         return tuple(sorted(self.actions, key=lambda a: a.order))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ViewExtension:
     """A cross-app injection into another resource's Form (design §5b), keyed by the target form's
     base path (e.g. ``/shop/orders``). The extending app OWNS the injected tabs/actions — they are
