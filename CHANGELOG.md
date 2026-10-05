@@ -11,6 +11,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [0.3.0] — unreleased
 
+### Internal
+- **`views/descriptors.py` → `views/descriptors/` package** (SDK cleanup G3) — the ~851-line module
+  is split into cohesive modules (`common`/`list_`/`form`/`view`/`route`/`dashboard`), re-exported
+  from the package `__init__`. Pure refactor: every public symbol and import path
+  (`from moderatorim.sdk.views.descriptors import …`) is unchanged; the public-API snapshot is
+  identical. Sibling type references are `TYPE_CHECKING`-only (lazy via future annotations).
+
 ### Added
 - **i18n declaration contract** — `Locale(code)`, `Translation(key, language, value)`, and
   `TranslationSet(source, dir, entries)` descriptors (a unit DECLARES translatable strings; core's
