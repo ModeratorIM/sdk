@@ -59,6 +59,29 @@
         if (ob) ob.setAttribute("aria-expanded", "false");
       }
     }
+    // Language switcher: toggle `.active` on the sibling <menu> (same anchored-popup idiom as the
+    // account menu). The trigger + menu share a `.mim-lang-switcher` wrapper.
+    var langBtn = t.closest("[data-mim-lang-toggle]");
+    if (langBtn) {
+      var wrap = langBtn.closest(".mim-lang-switcher");
+      var lmenu = wrap ? wrap.querySelector(".mim-lang-menu") : null;
+      if (lmenu) {
+        var langOpen = !lmenu.classList.contains("active");
+        lmenu.classList.toggle("active", langOpen);
+        langBtn.setAttribute("aria-expanded", langOpen ? "true" : "false");
+      }
+      return;
+    }
+    // Click outside an open language menu closes it (a row click falls through so the POST fires).
+    if (!t.closest(".mim-lang-menu")) {
+      var openLang = document.querySelector(".mim-lang-menu.active");
+      if (openLang) {
+        openLang.classList.remove("active");
+        var lb = openLang.closest(".mim-lang-switcher");
+        var lt = lb ? lb.querySelector("[data-mim-lang-toggle]") : null;
+        if (lt) lt.setAttribute("aria-expanded", "false");
+      }
+    }
     // Mobile drawer: close on scrim tap, or after tapping a nav link inside the drawer.
     if (t.closest("[data-mim-nav-scrim]") || t.closest(".mim-nav-item")) {
       document.body.classList.remove("mim-nav-drawer-open");

@@ -77,6 +77,7 @@ class App:
     def __init__(self) -> None:
         self._routes: list[RouteDef] = []
         self._extensions: list[Any] = []  # ViewExtension declarations (cross-app form injection)
+        self._translations: list[Any] = []  # TranslationSet declarations (i18n catalogs)
 
     def page(
         self,
@@ -211,6 +212,18 @@ class App:
     def extensions(self) -> list[Any]:
         """The recorded cross-app view extensions (core reads these at boot)."""
         return list(self._extensions)
+
+    def translations(self, translation_set: Any) -> None:
+        """Declare a unit's i18n catalog (i18n spec §4). Record a ``TranslationSet`` the unit ships
+        (explicit ``entries`` or a ``dir`` of ``languages/{code}.json`` files); core collects these
+        at boot and SEEDS them INSERT-IF-MISSING into ``core_translation``, stamping the ``source``
+        from the declaring unit. The SAME verb serves core, backend adapters, and apps."""
+        self._translations.append(translation_set)
+
+    @property
+    def declared_translations(self) -> list[Any]:
+        """The recorded TranslationSets (core reads + seeds these at boot)."""
+        return list(self._translations)
 
     def calendar_view(self, path: str, *, model: Any, view: Any, permission: str) -> None:
         """Record a generated Calendar month page (design §6, ``Kind.CALENDAR``) at ``path``, gated
