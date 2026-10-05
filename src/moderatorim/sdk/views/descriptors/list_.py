@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from moderatorim.sdk.views.descriptors.common import Field
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ListView:
     """A table generated from ``fields`` (ordered), with mandatory list affordances.
 
@@ -65,7 +65,7 @@ class ListView:
 # --- Form view (Stage 2) -----------------------------------------------------------------------
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ListCardField:
     """One labelled fact shown inside a :class:`ListCard` row-card.
 
@@ -93,7 +93,7 @@ class ListCardField:
             raise ValueError("ListCardField.value is required")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ListCardAction:
     """A per-card button on a :class:`ListCard` (e.g. Revoke). Unlike :class:`FormAction`, which
     binds a handler callable to a generated route, a ``ListCardAction`` POSTs directly to a FIXED,
@@ -123,7 +123,7 @@ class ListCardAction:
             raise ValueError("ListCardAction.hx_post is required")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ListCard:
     """A list rendered as ONE CARD PER ROW (not a table) — e.g. a user's active sessions. Each card
     shows its ``fields`` (label/value facts) and ``actions`` (per-card buttons); ``onclick`` makes

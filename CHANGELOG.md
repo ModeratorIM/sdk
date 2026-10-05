@@ -11,6 +11,18 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [0.3.0] — unreleased
 
+### Changed
+- **Config descriptors are now keyword-only** (SDK cleanup G2) — the big declarative "config bag"
+  descriptors (`ListView`, `FormView`, `FormTab`, `FormList`, `FormFields`, `FormAction`,
+  `StatusBadge`, `ListCard`, `ListCardAction`, `ListCardField`, `ModalView`, `ModalAction`,
+  `PageView`, `ViewModel`, `CalendarView`, `ViewExtension`, `FormOverview`, `PageRoute`,
+  `StatCard`, `ScoreCard`, `BarChart`, `MetricSource`, `SeriesSource`, `DashboardView`,
+  `Manifest`) are built with `@dataclass(kw_only=True)`, so every field must be passed by name
+  (`FormView(tabs=…)`, never `FormView(…)` positionally). Invisible to existing keyword call sites;
+  positional construction now raises `TypeError`. Ergonomic value objects keep their positional
+  first argument (`Field("name")`, `Locale("en")`, `Route(path, …)`, `Translation(key, …)`,
+  `ScoreBand(50, "At risk", …)`, `Action(…)`, `NavEntry(…)`, …) and are deliberately left as-is.
+
 ### Internal
 - **`views/descriptors.py` → `views/descriptors/` package** (SDK cleanup G3) — the ~851-line module
   is split into cohesive modules (`common`/`list_`/`form`/`view`/`route`/`dashboard`), re-exported

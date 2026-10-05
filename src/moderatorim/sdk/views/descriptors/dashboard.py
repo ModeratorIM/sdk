@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class MetricSource:
     """WHAT table a single-number widget reads — the dashboard analogue of ``PageView.model`` + a
     view's filters. ``agg`` over ``model.name`` restricted by ``filters``; ``column`` is required
@@ -23,7 +23,7 @@ class MetricSource:
     filters: tuple[Any, ...] = ()  # tuple[Filter, ...] — the datastore filter grammar
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class SeriesSource:
     """A chart's multi-point series: the same table binding plus a GROUP BY, so the engine returns
     ``[(group_label, value)]`` — one point per distinct ``group_by`` value (or date ``bucket``)."""
@@ -36,7 +36,7 @@ class SeriesSource:
     bucket: str = ""  # optional date bucket for a date group_by: day | week | month
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class StatCard:
     """A single generic metric: big value + label + optional ▲/▼ delta vs. a prior period."""
 
@@ -57,7 +57,7 @@ class ScoreBand:
     intent: str = "neutral"  # up | down | neutral -> fill/status color (CSS var)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ScoreCard:
     """A single score on a bounded scale (default 0..``max``), rendered as a server-SVG gauge with
     threshold ``bands``. The moderation policy-score surface."""
@@ -70,7 +70,7 @@ class ScoreCard:
     id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class BarChart:
     """A labelled vertical bar chart, server-rendered SVG, from a grouped ``SeriesSource``."""
 
@@ -81,7 +81,7 @@ class BarChart:
     id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class DashboardView:
     """A dashboard = an ordered set of visual widgets (StatCard | ScoreCard | BarChart) laid out in
     the BeerCSS grid. Pure declaration; the renderer dispatches by widget class name."""

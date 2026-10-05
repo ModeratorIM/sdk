@@ -168,7 +168,7 @@ class ViewRoute:
             raise ValueError("ViewRoute.path must be non-empty")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class PageRoute:
     """A domain's ROUTE BUNDLE — the declarative replacement for ``app.mount(...)``. Groups the
     generated ``views`` (:class:`ViewRoute`) + custom ``routes`` (:class:`Route`) + the default
