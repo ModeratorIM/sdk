@@ -76,11 +76,15 @@ class ChoiceReference:
       set, the option is ``Choice(value=row[column], label=row[label_column])`` — store a code, show
       an endonym. When empty (default), ``label == value`` (today's behaviour) and the resolver
       collapses to the DISTINCT values of ``column``.
+    * ``where`` — OPTIONAL equality filters as ``((column, value), ...)``: only rows matching ALL of
+      them are offered (e.g. ``(("active", True),)`` to offer only active catalog rows). Empty
+      (default) = no filter. Applied by the form sink at resolve time and at save-time validation.
     """
 
     model: str
     column: str
     label_column: str = ""
+    where: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.model:
