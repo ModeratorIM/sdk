@@ -20,6 +20,14 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   registry). A unit still constructing these two now raises `TypeError`; none did.
 
 ### Changed
+- **`FieldChoice` → `Choice`, `ChoiceSource` → `ChoiceReference`, and `TableColumn.choices_source`
+  folded into `choices`** (breaking) — the static pick-list option is now `Choice`; the dynamic
+  options source is now `ChoiceReference` and gains an optional `label_column` (store one column's
+  value, show another's — e.g. store a language `code`, show its `name`). `TableColumn` no longer
+  has a `choices_source` field: the single `choices=` field accepts EITHER a `tuple[Choice, ...]`
+  (static) OR a `ChoiceReference(...)` (dynamic), enforced as "one or the other" in
+  `__post_init__`. Migrate `FieldChoice(...)` → `Choice(...)` and
+  `choices_source=ChoiceSource(...)` → `choices=ChoiceReference(...)`.
 - **Config descriptors are now keyword-only** (SDK cleanup G2) — the big declarative "config bag"
   descriptors (`ListView`, `FormView`, `FormTab`, `FormList`, `FormFields`, `FormAction`,
   `StatusBadge`, `ListCard`, `ListCardAction`, `ListCardField`, `ModalView`, `ModalAction`,
