@@ -11,6 +11,14 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [0.3.0] — unreleased
 
+### Removed
+- **`Manifest.store_metadata` and `Manifest.system_users`** (SDK cleanup G1) — two stale
+  forward-declared fields with no reader anywhere (src or tests) and no unit declaring them.
+  `store_metadata` was never consumed; `system_users` described a boot-seeding path that was never
+  built. Both removed. **Kept** after verification: `provides` (load-bearing in the backend-contract
+  test — it drives the capability↔adapter check) and `subscriptions` (wired at boot in core's
+  registry). A unit still constructing these two now raises `TypeError`; none did.
+
 ### Changed
 - **Config descriptors are now keyword-only** (SDK cleanup G2) — the big declarative "config bag"
   descriptors (`ListView`, `FormView`, `FormTab`, `FormList`, `FormFields`, `FormAction`,
