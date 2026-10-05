@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from moderatorim.sdk import FieldChoice, FieldType, TableColumn
+from moderatorim.sdk import Choice, FieldType, TableColumn
 from moderatorim.ui import column_validators, render_column
 
 
@@ -40,8 +40,8 @@ def test_choice_renders_select_from_choices() -> None:
             name="status",
             type=FieldType.CHOICE,
             choices=(
-                FieldChoice(value="open", label="Open"),
-                FieldChoice(value="closed", label="Closed"),
+                Choice(value="open", label="Open"),
+                Choice(value="closed", label="Closed"),
             ),
         )
     )
@@ -78,7 +78,7 @@ def test_column_validators_generated() -> None:
         TableColumn(
             name="s",
             type=FieldType.CHOICE,
-            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")),
+            choices=(Choice(value="a", label="A"), Choice(value="b", label="B")),
         )
     )
     assert "OneOf" in [v.__class__.__name__ for v in choice_vs]

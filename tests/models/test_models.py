@@ -6,8 +6,8 @@ from __future__ import annotations
 import pytest
 
 from moderatorim.sdk import (
+    Choice,
     Extends,
-    FieldChoice,
     FieldType,
     ResolvedColumn,
     ResolvedSchema,
@@ -42,11 +42,9 @@ def test_listref_requires_relation() -> None:
 
 
 def test_column_choice_invariants() -> None:
-    assert choice(
-        "status", FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")
-    ).choices == (
-        FieldChoice(value="a", label="A"),
-        FieldChoice(value="b", label="B"),
+    assert choice("status", Choice(value="a", label="A"), Choice(value="b", label="B")).choices == (
+        Choice(value="a", label="A"),
+        Choice(value="b", label="B"),
     )
     with pytest.raises(ValueError, match="CHOICE column"):
         TableColumn(name="s", type=FieldType.CHOICE)
@@ -55,42 +53,44 @@ def test_column_choice_invariants() -> None:
         TableColumn(
             name="s",
             type=FieldType.CHOICE,
-            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="a", label="A2")),
+            choices=(Choice(value="a", label="A"), Choice(value="a", label="A2")),
         )
 
 
 def test_choice_source_dynamic_options() -> None:
-    from moderatorim.sdk import ChoiceSource
+    from moderatorim.sdk import ChoiceReference
 
-    # a CHOICE column may source its options from live data instead of a static pick-list
+    # a CHOICE column may source its options from live data (a ChoiceReference) instead of a static
+    # Choice tuple — both go through the single `choices=` field.
     col = TableColumn(
         name="source",
         type=FieldType.CHOICE,
-        choices_source=ChoiceSource(model="core_app_permission", column="app"),
+        choices=ChoiceReference(model="core_app_permission", column="app"),
     )
-    assert col.choices_source == ChoiceSource(model="core_app_permission", column="app")
-    assert col.choices == ()
+    assert col.choices == ChoiceReference(model="core_app_permission", column="app")
 
-    # cannot set both static choices and a dynamic source
-    with pytest.raises(ValueError, match="cannot set both"):
-        TableColumn(
-            name="s",
-            type=FieldType.CHOICE,
-            choices=(FieldChoice(value="a", label="A"),),
-            choices_source=ChoiceSource(model="m", column="c"),
-        )
+    # label_column: show one column, store another (code stored, endonym shown)
+    lc = TableColumn(
+        name="language",
+        type=FieldType.CHOICE,
+        choices=ChoiceReference(model="core_language", column="code", label_column="name"),
+    )
+    assert isinstance(lc.choices, ChoiceReference)
+    assert lc.choices.label_column == "name"
 
-    # choices_source is only valid on a CHOICE column
+    # a CHOICE column still requires `choices` (a Choice tuple or a ChoiceReference)
+    with pytest.raises(ValueError, match="requires `choices`"):
+        TableColumn(name="s", type=FieldType.CHOICE)
+
+    # `choices` is only valid on a CHOICE column (a ChoiceReference on a TEXT column is rejected)
     with pytest.raises(ValueError, match="only valid on a CHOICE"):
-        TableColumn(
-            name="s", type=FieldType.TEXT, choices_source=ChoiceSource(model="m", column="c")
-        )
+        TableColumn(name="s", type=FieldType.TEXT, choices=ChoiceReference(model="m", column="c"))
 
-    # ChoiceSource requires non-empty model + column
+    # ChoiceReference requires non-empty model + column
     with pytest.raises(ValueError, match="model must be non-empty"):
-        ChoiceSource(model="", column="c")
+        ChoiceReference(model="", column="c")
     with pytest.raises(ValueError, match="column must be non-empty"):
-        ChoiceSource(model="m", column="")
+        ChoiceReference(model="m", column="")
 
 
 def test_max_length_only_on_text() -> None:
@@ -107,7 +107,7 @@ def test_default_type_consistency() -> None:
         TableColumn(
             name="s",
             type=FieldType.CHOICE,
-            choices=(FieldChoice(value="a", label="A"), FieldChoice(value="b", label="B")),
+            choices=(Choice(value="a", label="A"), Choice(value="b", label="B")),
             default="c",
         )
 
@@ -201,7 +201,7 @@ def test_assert_valid_override_rejects_storage_facets() -> None:
         TableColumn(
             name="tier",
             type=FieldType.CHOICE,
-            choices=(FieldChoice(value="a", label="A"),),
+            choices=(Choice(value="a", label="A"),),
         ),
         TableColumn(name="owner", type=FieldType.REF, relation="core_user"),
     ):

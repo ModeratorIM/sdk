@@ -39,9 +39,11 @@ def column_validators(column: TableColumn) -> list[Validator]:
         out.append(Required())
     if column.max_length is not None:
         out.append(MaxLength(column.max_length))
-    if column.type is FieldType.CHOICE and column.choices:
+    if column.type is FieldType.CHOICE and isinstance(column.choices, tuple) and column.choices:
         # Validate against ACTIVE choice values; a retired (inactive) option is not offered to new
-        # input, so it is not an allowed submitted value here.
+        # input, so it is not an allowed submitted value here. A ChoiceReference (dynamic source)
+        # has no static set to validate against here — core validates the submitted value against
+        # the live-resolved set at save time.
         out.append(OneOf(tuple(c.value for c in column.choices if c.active)))
     return out
 
@@ -82,11 +84,14 @@ def render_column(
         # (value, label) pairs from the active choices, ordered; the stored value is the option's
         # `value`, the shown text is its `label`. An already-stored inactive value is still shown
         # (so an edit does not silently drop it) by appending it when it is the current value.
-        active = sorted((c for c in column.choices if c.active), key=lambda c: c.order)
+        # A `choices` that is a ChoiceReference (dynamic/live-data source) has no static options to
+        # iterate here — the caller resolves them and passes `options` (core's _dynamic_choices).
+        static = column.choices if isinstance(column.choices, tuple) else ()
+        active = sorted((c for c in static if c.active), key=lambda c: c.order)
         opts = options or [(c.value, c.label) for c in active]
         cur = "" if value is None else str(value)
         if cur and cur not in {v for v, _ in opts}:
-            match = next((c for c in column.choices if c.value == cur), None)
+            match = next((c for c in static if c.value == cur), None)
             opts = [*opts, (cur, match.label if match else cur)]
         return Select(column.name, opts, label=label, value=cur)
 

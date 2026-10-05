@@ -18,7 +18,7 @@ from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
-class FieldChoice:
+class Choice:
     """One option of a :data:`FieldType.CHOICE` column — a structured static pick-list entry.
 
     Unlike a bare string, a choice separates what is STORED from what is SHOWN:
@@ -42,9 +42,9 @@ class FieldChoice:
 
     def __post_init__(self) -> None:
         if not self.value:
-            raise ValueError("FieldChoice.value must be non-empty")
+            raise ValueError("Choice.value must be non-empty")
         if not self.label:
-            raise ValueError(f"FieldChoice {self.value!r} requires a non-empty label")
+            raise ValueError(f"Choice {self.value!r} requires a non-empty label")
         if not self.name:
             object.__setattr__(self, "name", self.value)  # default the machine key to value
 
@@ -55,32 +55,38 @@ class FieldChoice:
 
 
 @dataclass(frozen=True, slots=True)
-class ChoiceSource:
+class ChoiceReference:
     """A render-time options source for a :data:`FieldType.CHOICE` column.
 
-    Where :class:`FieldChoice` is a STATIC, compile-time pick-list, a ``ChoiceSource`` makes a
-    CHOICE field's options come from LIVE DATA — the DISTINCT values of a column on an existing
+    Where a tuple of :class:`Choice` is a STATIC, compile-time pick-list, a ``ChoiceReference``
+    makes a CHOICE field's options come from LIVE DATA — the values of a column on an existing
     table — resolved when the form renders. Use it for "pick from the values that already exist"
     fields (e.g. a role's ``source`` picked from the distinct ``app`` values in the permission
-    catalog) so a free-typed value can never introduce a typo.
+    catalog, or a user's ``language`` picked from the ``core_language`` catalog) so a free-typed
+    value can never introduce a typo.
 
     Declarative + strict: the column declares WHERE its options come from; the form sink resolves
-    the distinct set at render time and validates a submitted value against that live set (an input
-    outside it is rejected server-side). The option ``value`` and ``label`` are the raw distinct
-    value.
+    the set at render time and validates a submitted value against that live set (an input outside
+    it is rejected server-side).
 
-    * ``model`` — the physical table name to read (e.g. ``core_app_permission``).
-    * ``column`` — the column whose DISTINCT values become the options (e.g. ``app``).
+    * ``model`` — the physical table name to read (e.g. ``core_app_permission``, ``core_language``).
+    * ``column`` — the column whose values become the option VALUE (what is stored, e.g. ``app`` or
+      ``code``).
+    * ``label_column`` — OPTIONAL: the column whose value is the option LABEL (what is shown). When
+      set, the option is ``Choice(value=row[column], label=row[label_column])`` — store a code, show
+      an endonym. When empty (default), ``label == value`` (today's behaviour) and the resolver
+      collapses to the DISTINCT values of ``column``.
     """
 
     model: str
     column: str
+    label_column: str = ""
 
     def __post_init__(self) -> None:
         if not self.model:
-            raise ValueError("ChoiceSource.model must be non-empty")
+            raise ValueError("ChoiceReference.model must be non-empty")
         if not self.column:
-            raise ValueError("ChoiceSource.column must be non-empty")
+            raise ValueError("ChoiceReference.column must be non-empty")
 
 
 class FieldType(Enum):
@@ -94,7 +100,9 @@ class FieldType(Enum):
     DATE = "date"
     DATETIME = "datetime"
     OBJECT = "object"  # arbitrary JSON blob -> JSONB
-    CHOICE = "choice"  # structured static pick-list (see TableColumn.choices -> FieldChoice tuple)
+    CHOICE = (
+        "choice"  # structured pick-list (TableColumn.choices -> Choice tuple OR ChoiceReference)
+    )
     REF = "ref"  # reference to ONE record (see TableColumn.relation -> table name)
     LISTREF = "listref"  # list of references (many-to-many) -> auto join table
 
@@ -120,8 +128,9 @@ class TableColumn:
     index: bool = False
     default: Any = None
     relation: str | None = None  # for REF/LISTREF: the target table name (app-namespaced)
-    choices: tuple[FieldChoice, ...] = ()  # for CHOICE: the allowed options (value/label/active/…)
-    choices_source: ChoiceSource | None = None  # for CHOICE: resolve options from live data instead
+    # for CHOICE: EITHER a static tuple of Choice (compile-time pick-list) OR a ChoiceReference
+    # (options resolved from live data at render). Exactly one form, enforced in __post_init__.
+    choices: tuple[Choice, ...] | ChoiceReference = ()
     max_length: int | None = None  # for TEXT/TEXTAREA: VARCHAR(n), validated on save
     encrypt: bool = False  # at-rest encryption, store-honored
     active: bool = True  # shown in the UI (False = hidden from views/forms, NOT dropped)
@@ -143,21 +152,18 @@ class TableColumn:
             raise ValueError(f"`relation` is only valid on a REF/LISTREF column ({self.name!r})")
 
         if self.type is FieldType.CHOICE:
-            if not self.choices and self.choices_source is None:
+            if not self.choices:
                 raise ValueError(
-                    f"CHOICE column {self.name!r} requires either `choices` or `choices_source`"
+                    f"CHOICE column {self.name!r} requires `choices` (a Choice tuple or a "
+                    f"ChoiceReference)"
                 )
-            if self.choices and self.choices_source is not None:
-                raise ValueError(
-                    f"CHOICE column {self.name!r} cannot set both `choices` and `choices_source`"
-                )
-            values = [c.value for c in self.choices]
-            if len(values) != len(set(values)):
-                raise ValueError(f"CHOICE column {self.name!r} has duplicate choice values")
+            if not isinstance(self.choices, ChoiceReference):
+                # static Choice tuple — values must be unique
+                values = [c.value for c in self.choices]
+                if len(values) != len(set(values)):
+                    raise ValueError(f"CHOICE column {self.name!r} has duplicate choice values")
         elif self.choices:
             raise ValueError(f"`choices` is only valid on a CHOICE column ({self.name!r})")
-        if self.type is not FieldType.CHOICE and self.choices_source is not None:
-            raise ValueError(f"`choices_source` is only valid on a CHOICE column ({self.name!r})")
 
         if self.max_length is not None and self.type not in _STRING_TYPES:
             raise ValueError(f"`max_length` is only valid on TEXT/TEXTAREA ({self.name!r})")
@@ -184,7 +190,13 @@ def _check_default_type(col: TableColumn) -> None:
         raise ValueError(f"FLOAT column {col.name!r} default must be a number, got {d!r}")
     if t in _STRING_TYPES and not isinstance(d, str):
         raise ValueError(f"{t.name} column {col.name!r} default must be a str, got {d!r}")
-    if t is FieldType.CHOICE and d not in {c.value for c in col.choices}:
+    # a static default is only checkable against a static Choice tuple; a ChoiceReference resolves
+    # at render (no compile-time value set to check against).
+    if (
+        t is FieldType.CHOICE
+        and not isinstance(col.choices, ChoiceReference)
+        and d not in {c.value for c in col.choices}
+    ):
         raise ValueError(
             f"CHOICE column {col.name!r} default {d!r} not in choice values "
             f"{tuple(c.value for c in col.choices)}"
@@ -257,7 +269,7 @@ def listref(name: str, table: str, **kw: Any) -> TableColumn:
 
 def choice(
     name: str,
-    *choices: FieldChoice,
+    *choices: Choice,
     required: bool = False,
     default: Any = None,
     **kw: Any,
