@@ -115,6 +115,9 @@ class Manifest:
     version: str = "0.0.0"
     display_name: str = ""
     dependency: tuple[str, ...] = ()
+    # Capabilities this backend unit ships (backend contract Layer B): each capability name must
+    # have a matching ``adapters/<capability>.py`` module. The backend contract test asserts the
+    # two stay in lockstep. Non-backend units leave this empty.
     provides: tuple[str, ...] = ()
     models: tuple[TableModel, ...] = ()
     extends: tuple[Extends, ...] = ()
@@ -128,7 +131,6 @@ class Manifest:
     # boot — core calls factory(core) and subscribes the returned handler to kind. Replaces the
     # imperative register(core) + bus.subscribe(...) boilerplate (register is now optional).
     subscriptions: tuple[Any, ...] = ()
-    store_metadata: dict[str, Any] = field(default_factory=dict)
     nav: tuple[NavEntry, ...] = ()
     # Sign-in methods this unit contributes to the public sign-in page (auth-methods spec). Core's
     # own core.password method is added by core, not declared here. Collected across units at boot.
@@ -156,13 +158,6 @@ class Manifest:
     # reach its own role-gated tables out of the box. Each MUST be a declared role (its own or a
     # dependency's); core validates + seeds them (apps declare, core decides).
     service_roles: tuple[str, ...] = ()
-    # System users this unit ships: each maps a system-user NAME ("{app}.{user_name}",
-    # e.g. "cron.user") to the group names it belongs to. Boot/install seeds each as a
-    # type="system", un-loginable core_user and places it in those groups, so the unit's userless
-    # work (event-bus subscribers, cron, webhooks, boot hooks) runs AS a real, least-privilege RBAC
-    # principal. Core validates the "{app}" ownership prefix and seeds them (apps declare, core
-    # decides) — the SDK only carries the declaration.
-    system_users: dict[str, tuple[str, ...]] = field(default_factory=dict)
     # When True, this unit is PRIVATE: ANY unauthorized access to one of its routes — whether the
     # caller is UNAUTHENTICATED or authenticated-WITHOUT the required permission, and whether a GET
     # page or a mutation — returns 404 (Not Found), so the unit's existence is fully CONCEALED.
