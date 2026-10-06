@@ -10,6 +10,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`PlatformCapabilities` + `Manifest.platform`** — a `UnitType.PLATFORM` adapter declares its
+  platform-registry capability catalog (auth/ingest shape + event/signal/action/credential tuples)
+  as DATA on its manifest, via the optional `platform: PlatformCapabilities | None` field. Core
+  reads it off a discovered platform manifest and seeds the registry rows ONLY when an operator ADDS
+  the platform (Model B — no boot-time self-seed). `auth_type`/`ingest_mode` are enum-value strings
+  so the SDK carries no dependency on core's enums. `None` for non-platform units and for a platform
+  with no capabilities yet — zero impact on existing manifests.
 - **`operators_for` / `is_filterable` / `FIELD_TYPE_OPERATORS`** — the `FieldType` → operator-token
   vocabulary, lifted to the public surface as the single source of truth. Core's query builder and
   view renderer already derived condition operators from a column's type; this exposes the same

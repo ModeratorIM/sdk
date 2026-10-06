@@ -65,6 +65,7 @@ from moderatorim.sdk.registry import (
     AuthMethod,
     Manifest,
     NavEntry,
+    PlatformCapabilities,
     UnitType,
 )
 from moderatorim.sdk.validation import (
@@ -180,6 +181,7 @@ __all__ = [
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    "PlatformCapabilities",
     "Locale",
     "Translation",
     "TranslationSet",

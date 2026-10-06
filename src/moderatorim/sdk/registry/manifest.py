@@ -95,6 +95,40 @@ class AuthMethod:
             )
 
 
+# Platform seed tuples — the capability catalog a platform adapter DECLARES (seeded on operator-add,
+# never at boot). Plain data: the field types are strings (not core enums), so the SDK carries no
+# dependency on core's AuthType/IngestMode. Core coerces when it seeds (platform-management spec).
+EventSpec = tuple[str, str]  # (event_type, label)
+SignalSpec = tuple[str, str, str]  # (field_key, label, field_type)
+ActionSpec = tuple[str, str]  # (action, label)
+CredentialSpec = str | tuple[str, bool]  # key, or (key, secret)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PlatformCapabilities:
+    """What a ``UnitType.PLATFORM`` adapter DECLARES for the platform registry — the inputs to
+    core's ``register_platform``, as DATA on the manifest instead of an imperative boot call.
+
+    Model B (platform-management spec): nothing is seeded at boot. Core reads this off a discovered
+    platform manifest and seeds the ``core_platform*`` rows ONLY when an operator ADDS the platform
+    from the picker. The platform's identity (code = ``Manifest.name``, title = ``display_name``,
+    ``version`` / ``api_version``) stays on the manifest — this value object carries only the extra
+    catalog the manifest did not already model: auth/ingest shape + the event/signal/action/
+    credential tuples.
+
+    ``auth_type`` / ``ingest_mode`` are the enum VALUES as strings (e.g. ``"token"`` /
+    ``"webhook"``) so this object has no core-enum dependency; core validates + coerces them when
+    seeding."""
+
+    auth_type: str = "none"
+    ingest_mode: str = "none"
+    description: str = ""
+    events: tuple[EventSpec, ...] = ()
+    signals: tuple[SignalSpec, ...] = ()
+    actions: tuple[ActionSpec, ...] = ()
+    credentials: tuple[CredentialSpec, ...] = ()
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Manifest:
     """A unit's self-declaration.
@@ -128,6 +162,11 @@ class Manifest:
     # have a matching ``adapters/<capability>.py`` module. The backend contract test asserts the
     # two stay in lockstep. Non-backend units leave this empty.
     provides: tuple[str, ...] = ()
+    # The platform-registry capability catalog a UnitType.PLATFORM adapter declares (auth/ingest
+    # shape + event/signal/action/credential tuples). Core seeds it into core_platform* ONLY when an
+    # operator ADDS the platform (Model B — never at boot). None for non-platform units, and for a
+    # platform that declares no capabilities yet (platform-management spec).
+    platform: PlatformCapabilities | None = None
     models: tuple[TableModel, ...] = ()
     extends: tuple[Extends, ...] = ()
     # Languages this unit ships (i18n spec §11): the locales whose `languages/{code}.json` catalogs

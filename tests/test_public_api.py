@@ -67,6 +67,7 @@ EXPECTED_PUBLIC_API = {
     "UnitType",
     "NavEntry",
     "AuthMethod",
+    "PlatformCapabilities",
     # i18n
     "Locale",
     "Translation",
