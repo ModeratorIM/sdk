@@ -38,6 +38,7 @@ from moderatorim.sdk.i18n import (
 from moderatorim.sdk.models import (
     CREATED_AT_FIELD,
     CREATED_BY_FIELD,
+    FIELD_TYPE_OPERATORS,
     ID_FIELD,
     INHERIT_ONLY_FACETS,
     OVERRIDABLE_FACETS,
@@ -54,7 +55,9 @@ from moderatorim.sdk.models import (
     TableModel,
     assert_valid_override,
     choice,
+    is_filterable,
     listref,
+    operators_for,
     ref,
     text,
 )
@@ -132,6 +135,9 @@ __all__ = [
     "TableModel",
     "TableColumn",
     "FieldType",
+    "FIELD_TYPE_OPERATORS",
+    "operators_for",
+    "is_filterable",
     "Extends",
     "ResolvedColumn",
     "ResolvedSchema",

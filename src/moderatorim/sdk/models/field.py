@@ -115,6 +115,38 @@ _STRING_TYPES = (FieldType.TEXT, FieldType.TEXTAREA)
 _REF_TYPES = (FieldType.REF, FieldType.LISTREF)
 
 
+# The operator TOKENS each FieldType offers when a condition / filter is DERIVED from a column's
+# type (not declared per-field). This is the single source of truth for the field-type → operator
+# vocabulary: core's query builder + view renderer read it, and apps building a condition UI (the
+# moderator Designer) derive their operator pickers from it instead of re-deriving the table. A
+# range on a numeric/date field is expressed as two clauses (gte + lte), so both are offered.
+# OBJECT (JSON) / LISTREF are absent = NOT COMPARABLE (excluded from any operator picker). The token
+# strings are abstract (``eq``/``lt``/``contains``); mapping a token onto a concrete store
+# :class:`~moderatorim.sdk.FilterOp` is the consumer's concern (core owns that wiring).
+FIELD_TYPE_OPERATORS: dict[FieldType, tuple[str, ...]] = {
+    FieldType.TEXT: ("contains", "eq"),
+    FieldType.TEXTAREA: ("contains", "eq"),
+    FieldType.INTEGER: ("eq", "ne", "lt", "lte", "gt", "gte"),
+    FieldType.FLOAT: ("eq", "ne", "lt", "lte", "gt", "gte"),
+    FieldType.DATE: ("eq", "ne", "lt", "lte", "gt", "gte"),
+    FieldType.DATETIME: ("eq", "ne", "lt", "lte", "gt", "gte"),
+    FieldType.BOOLEAN: ("eq",),
+    FieldType.CHOICE: ("eq", "ne"),
+    FieldType.REF: ("eq", "ne"),
+    # OBJECT (JSON) / LISTREF: not comparable.
+}
+
+
+def operators_for(field_type: FieldType) -> tuple[str, ...]:
+    """The operator tokens a column of ``field_type`` offers (empty = not comparable)."""
+    return FIELD_TYPE_OPERATORS.get(field_type, ())
+
+
+def is_filterable(field_type: FieldType) -> bool:
+    """True if a column of this type offers any operator (can be filtered / conditioned on)."""
+    return bool(FIELD_TYPE_OPERATORS.get(field_type))
+
+
 @dataclass(frozen=True, slots=True)
 class TableColumn:
     """A single typed column on a :class:`~moderatorim.sdk.models.TableModel`.
