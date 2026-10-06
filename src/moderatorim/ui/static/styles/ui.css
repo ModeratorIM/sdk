@@ -392,6 +392,8 @@
 }
 .mim-form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
 .mim-form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+/* Space consecutive FormFields blocks apart (the grid's `gap` is WITHIN a block, not between). */
+.mim-form-grid:not(:last-child) { margin-bottom: 1rem; }
 .mim-form-field { display: flex; flex-direction: column; gap: 0.35rem; }
 .mim-form-field.span-2 { grid-column: span 2; }
 .mim-form-field.span-3 { grid-column: span 3; }
