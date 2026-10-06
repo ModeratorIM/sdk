@@ -27,6 +27,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   rows a dynamic CHOICE offers (e.g. `where=(("active", True),)` to offer only active catalog rows).
   Backward-compatible (default `()` = no filter); the consuming sink applies it at resolve + save.
 
+### Fixed
+- **FormView block spacing** — consecutive `FormFields` grids (`.mim-form-grid`) are now separated
+  by `margin-bottom` (the grid's own `gap` only spaced fields WITHIN a block, so two stacked blocks
+  — e.g. a paired name+platform row then a full-width description — rendered flush together).
+
 ## [0.3.0] — unreleased
 
 ### Removed
