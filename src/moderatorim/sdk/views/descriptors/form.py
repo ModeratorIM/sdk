@@ -34,6 +34,20 @@ class FormFields:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class FormHtml:
+    """A form child view that renders BESPOKE pre-rendered HTML in a tab, supplied by the handler
+    via ``subview_data[tab_index]`` (the same inline-data seam ``FormList`` uses).
+
+    For a tab whose content the generic model-driven renderer cannot express — e.g. a key/value
+    satellite editor (platform credentials) rather than the record's own columns. The handler
+    renders the fragment and passes it in ``subview_data``; ``render_form`` places it. A
+    ``FormHtml`` tab with no matching ``subview_data`` entry renders empty (not an error)."""
+
+    order: int = 100
+    id: str = ""  # DOM id / htmx target for the panel region (D5); defaults to the per-tab fallback
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class FormList:
     """A form child view: an embedded list of a RELATED model inside a tab (tabbed-form-subviews
     §2). Unlike ``FormFields`` (which renders the record's own columns), a ``FormList`` renders rows

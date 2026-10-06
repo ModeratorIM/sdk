@@ -104,3 +104,12 @@ def test_platform_capabilities_default_and_declared() -> None:
     # frozen value object (immutable declaration)
     with pytest.raises(AttributeError):
         caps.auth_type = "basic_auth"  # type: ignore[misc]
+
+
+def test_form_html_child_is_a_plain_container() -> None:
+    from moderatorim.sdk import FormHtml, FormTab
+
+    h = FormHtml(order=0, id="auth")
+    tab = FormTab(label="Authentication", order=0, views=(h,))
+    assert tab.ordered_views[0] is h
+    assert h.id == "auth" and h.order == 0

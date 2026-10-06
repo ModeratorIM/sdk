@@ -20,6 +20,7 @@ from moderatorim.sdk.views.descriptors.dashboard import (
 from moderatorim.sdk.views.descriptors.form import (
     FormAction,
     FormFields,
+    FormHtml,
     FormList,
     FormSave,
     FormTab,
@@ -56,6 +57,7 @@ __all__ = [
     "Field",
     "FormAction",
     "FormFields",
+    "FormHtml",
     "FormList",
     "FormOverview",
     "FormSave",
