@@ -113,6 +113,15 @@ class Manifest:
     # the boot compatibility shim during the migration, so the annotation admits either.
     register: Callable[..., PageRoute | tuple[PageRoute, ...] | None] = _no_register
     version: str = "0.0.0"
+    # The provider API version this unit's declared capabilities target — e.g. a platform adapter
+    # publishing against "Telegram Bot API 7.0" sets api_version="7.0". OPTIONAL (empty for units
+    # with no external provider API, e.g. apps, or a send-only/unversioned platform). DISTINCT from
+    # ``version`` above (the unit's own package SemVer, build metadata): an adapter bugfix release
+    # bumps ``version`` without touching ``api_version`` when the provider contract is unchanged.
+    # The platform registry stamps each capability row it seeds with this value, so multiple
+    # api_versions of a platform's capability set coexist and a moderator can pin one (platform
+    # registry spec). Zero impact on existing manifests — default empty.
+    api_version: str = ""
     display_name: str = ""
     dependency: tuple[str, ...] = ()
     # Capabilities this backend unit ships (backend contract Layer B): each capability name must

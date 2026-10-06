@@ -10,6 +10,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`Manifest.api_version`** — optional provider API version a unit's declared capabilities target
+  (e.g. a platform adapter publishing against Telegram Bot API 7.0 sets `api_version="7.0"`).
+  Distinct from `version` (the unit's own package SemVer): an adapter bugfix release bumps `version`
+  without touching `api_version` when the provider contract is unchanged. Backward-compatible
+  (default `""` = no provider API; apps and unversioned/send-only platforms leave it empty). The
+  platform registry stamps seeded capability rows with it so multiple provider API versions coexist.
 - **`ChoiceReference.where`** — optional equality filters `((column, value), ...)` scoping which
   rows a dynamic CHOICE offers (e.g. `where=(("active", True),)` to offer only active catalog rows).
   Backward-compatible (default `()` = no filter); the consuming sink applies it at resolve + save.

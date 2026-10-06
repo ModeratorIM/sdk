@@ -56,3 +56,19 @@ def test_manifest_service_roles_default_empty_and_carries_declaration() -> None:
         service_roles=("moderation.reviewer",),
     )
     assert m2.service_roles == ("moderation.reviewer",)
+
+
+def test_manifest_api_version_default_empty_and_distinct_from_version() -> None:
+    # default: no provider API version (apps / unversioned providers)
+    m = Manifest(name="widget", type=UnitType.APP, register=lambda c: None)
+    assert m.api_version == ""
+    # carries the declared provider API version, independent of the package `version`
+    m2 = Manifest(
+        name="telegram",
+        type=UnitType.PLATFORM,
+        register=lambda c: None,
+        version="0.1.0",
+        api_version="7.0",
+    )
+    assert m2.api_version == "7.0"
+    assert m2.version == "0.1.0"
