@@ -38,9 +38,13 @@ class ListView:
       navigates here (a full-page GET) instead of the generated ``{base}/new`` CRUD form — the
       entry point for a read-only catalog (``enable_actions=False``) whose "add" flow is a BESPOKE
       route, not the generated create form (e.g. the platform catalog's ``/platforms/new`` picker).
-      It renders INDEPENDENTLY of ``enable_actions`` (which only suppresses the generated CRUD
-      controls), but STILL honours the create-permission gate: a caller lacking ``.create`` does
-      not see it. ``""`` (default) keeps the generated behaviour. Never shown on an embedded list.
+    * ``row_clickable`` — on a READ-ONLY list (``enable_actions=False``) rows are normally
+      non-navigable, because the generated form routes they would open do not exist. Set this True
+      when a read-only list DOES have a destination form at ``{base}/{id}`` (e.g. the platform
+      catalog, whose rows open the per-platform FormView) so a row-click navigates there while
+      Edit/Delete/New stay suppressed. Still honours read permission. Ignored on an actionable list
+      (rows are already clickable) and never applies to a ``multiselect`` picker (row toggles its
+      checkbox). ``False`` (default) keeps the read-only non-navigable behaviour.
     """
 
     fields: tuple[Field, ...] = ()
@@ -49,6 +53,7 @@ class ListView:
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
     new_href: str = ""
+    row_clickable: bool = False
     # The column whose value is the checkbox's submitted key when `multiselect` is set (defaults
     # to the display column). For roles' permission picker this is "permission".
     select_key: str = ""
