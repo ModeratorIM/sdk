@@ -331,6 +331,14 @@ def test_list_view_new_href_default_and_set() -> None:
     assert ListView(enable_actions=False, new_href="/platforms/new").new_href == "/platforms/new"
 
 
+def test_list_view_row_clickable_default_and_set() -> None:
+    from moderatorim.sdk import ListView
+
+    assert ListView().row_clickable is False  # default: read-only rows are non-navigable
+    # a read-only catalog whose rows open a destination form opts back in
+    assert ListView(enable_actions=False, row_clickable=True).row_clickable is True
+
+
 def test_app_mount_expands_viewroutes_with_permissions() -> None:
     from moderatorim.sdk import (
         App,

@@ -10,6 +10,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`ListView.row_clickable`** — opt a READ-ONLY list's rows back into navigation. A read-only list
+  (`enable_actions=False`) normally has non-clickable rows (its generated form routes don't exist);
+  set this True when the list DOES have a destination form at `{base}/{id}` (e.g. the platform
+  catalog → per-platform FormView) so a row-click navigates there while Edit/Delete/New stay
+  suppressed. Honours read permission; ignored on actionable or `multiselect` lists.
+  Backward-compatible (`False` default). Pairs with a core `render_list` branch.
 - **`ListView.new_href`** — an optional custom path for the toolbar "New" button. When set, New
   navigates there instead of the generated `{base}/new` CRUD form — the entry point for a read-only
   catalog (`enable_actions=False`) whose "add" flow is a bespoke route (e.g. the platform catalog's
