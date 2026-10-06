@@ -34,6 +34,13 @@ class ListView:
       would see action controls linking to form routes that do not exist. A suppress-only VETO:
       permission (``ctx.can``) decides whether the CRUD buttons show; this only forces them off.
       Independent of permission gating.
+    * ``new_href`` — an OPTIONAL custom path for the toolbar "New" button. When set, the New button
+      navigates here (a full-page GET) instead of the generated ``{base}/new`` CRUD form — the
+      entry point for a read-only catalog (``enable_actions=False``) whose "add" flow is a BESPOKE
+      route, not the generated create form (e.g. the platform catalog's ``/platforms/new`` picker).
+      It renders INDEPENDENTLY of ``enable_actions`` (which only suppresses the generated CRUD
+      controls), but STILL honours the create-permission gate: a caller lacking ``.create`` does
+      not see it. ``""`` (default) keeps the generated behaviour. Never shown on an embedded list.
     """
 
     fields: tuple[Field, ...] = ()
@@ -41,6 +48,7 @@ class ListView:
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
+    new_href: str = ""
     # The column whose value is the checkbox's submitted key when `multiselect` is set (defaults
     # to the display column). For roles' permission picker this is "permission".
     select_key: str = ""

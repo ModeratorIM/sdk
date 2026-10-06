@@ -10,6 +10,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`ListView.new_href`** — an optional custom path for the toolbar "New" button. When set, New
+  navigates there instead of the generated `{base}/new` CRUD form — the entry point for a read-only
+  catalog (`enable_actions=False`) whose "add" flow is a bespoke route (e.g. the platform catalog's
+  `/platforms/new` picker). Renders independently of `enable_actions` but still honours the
+  create-permission gate; never shown on an embedded list. Backward-compatible (`""` default keeps
+  generated behaviour). Pairs with a core `render_list` branch.
 - **`FormHtml`** — a `FormTab` child that renders bespoke pre-rendered HTML supplied by the handler
   via `subview_data[tab_index]` (the inline-data seam `FormList` already uses). For a tab whose
   content the model-driven renderer cannot express — e.g. a key/value satellite editor (platform

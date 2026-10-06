@@ -323,6 +323,14 @@ def test_list_view_enable_actions_default_and_off() -> None:
     assert ListView(enable_actions=False).enable_actions is False  # read-only list opts out
 
 
+def test_list_view_new_href_default_and_set() -> None:
+    from moderatorim.sdk import ListView
+
+    assert ListView().new_href == ""  # default: generated {base}/new
+    # a read-only catalog can still point New at a bespoke route
+    assert ListView(enable_actions=False, new_href="/platforms/new").new_href == "/platforms/new"
+
+
 def test_app_mount_expands_viewroutes_with_permissions() -> None:
     from moderatorim.sdk import (
         App,
