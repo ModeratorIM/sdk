@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 from moderatorim.sdk import (
+    FIELD_TYPE_OPERATORS,
     Choice,
     Extends,
     FieldType,
@@ -15,7 +16,9 @@ from moderatorim.sdk import (
     TableModel,
     assert_valid_override,
     choice,
+    is_filterable,
     listref,
+    operators_for,
     ref,
 )
 
@@ -218,3 +221,18 @@ def test_assert_valid_override_rejects_storage_facets() -> None:
     ):
         with pytest.raises(ValueError, match="may not set storage facet"):
             assert_valid_override(bad)
+
+
+def test_operators_for_derives_from_field_type() -> None:
+    """The lifted operator vocabulary: each FieldType maps to its operator tokens, and
+    comparability is the presence of any operator."""
+    assert "contains" in operators_for(FieldType.TEXT)
+    assert operators_for(FieldType.INTEGER) == ("eq", "ne", "lt", "lte", "gt", "gte")
+    assert operators_for(FieldType.BOOLEAN) == ("eq",)
+    # OBJECT (JSON) and LISTREF are not comparable -> no operators.
+    assert operators_for(FieldType.OBJECT) == ()
+    assert operators_for(FieldType.LISTREF) == ()
+    assert is_filterable(FieldType.CHOICE)
+    assert not is_filterable(FieldType.OBJECT)
+    # operators_for reads the public table (single source of truth).
+    assert operators_for(FieldType.FLOAT) == FIELD_TYPE_OPERATORS[FieldType.FLOAT]

@@ -10,6 +10,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`operators_for` / `is_filterable` / `FIELD_TYPE_OPERATORS`** — the `FieldType` → operator-token
+  vocabulary, lifted to the public surface as the single source of truth. Core's query builder and
+  view renderer already derived condition operators from a column's type; this exposes the same
+  table so an app building a condition UI (a no-code rule/Designer surface) derives its operator
+  pickers from the SDK instead of re-deriving the mapping (a silent-divergence hazard). The token
+  strings are abstract (`eq`/`lt`/`contains`); mapping a token onto a concrete store `FilterOp`
+  stays the consumer's concern. Backward-compatible (pure additions).
 - **`Manifest.api_version`** — optional provider API version a unit's declared capabilities target
   (e.g. a platform adapter publishing against Telegram Bot API 7.0 sets `api_version="7.0"`).
   Distinct from `version` (the unit's own package SemVer): an adapter bugfix release bumps `version`

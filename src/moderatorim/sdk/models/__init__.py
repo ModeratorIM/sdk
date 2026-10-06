@@ -2,6 +2,7 @@
 resolved schema."""
 
 from moderatorim.sdk.models.field import (
+    FIELD_TYPE_OPERATORS,
     INHERIT_ONLY_FACETS,
     OVERRIDABLE_FACETS,
     Choice,
@@ -10,7 +11,9 @@ from moderatorim.sdk.models.field import (
     TableColumn,
     assert_valid_override,
     choice,
+    is_filterable,
     listref,
+    operators_for,
     ref,
     text,
 )
@@ -29,6 +32,9 @@ from moderatorim.sdk.models.schema import ResolvedColumn, ResolvedSchema
 __all__ = [
     "TableColumn",
     "FieldType",
+    "FIELD_TYPE_OPERATORS",
+    "operators_for",
+    "is_filterable",
     "Choice",
     "ChoiceReference",
     "text",
