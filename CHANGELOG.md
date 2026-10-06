@@ -10,6 +10,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`FormHtml`** — a `FormTab` child that renders bespoke pre-rendered HTML supplied by the handler
+  via `subview_data[tab_index]` (the inline-data seam `FormList` already uses). For a tab whose
+  content the model-driven renderer cannot express — e.g. a key/value satellite editor (platform
+  credentials) rather than the record's own columns. Pairs with a core `render_form` branch that
+  places it. Backward-compatible (pure addition).
 - **`PlatformCapabilities` + `Manifest.platform`** — a `UnitType.PLATFORM` adapter declares its
   platform-registry capability catalog (auth/ingest shape + event/signal/action/credential tuples)
   as DATA on its manifest, via the optional `platform: PlatformCapabilities | None` field. Core

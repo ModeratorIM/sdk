@@ -90,6 +90,7 @@ EXPECTED_PUBLIC_API = {
     "ModalView",
     "FormTab",
     "FormFields",
+    "FormHtml",
     "FormList",
     "ListCard",
     "ListCardAction",
