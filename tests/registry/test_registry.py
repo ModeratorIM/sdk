@@ -72,3 +72,35 @@ def test_manifest_api_version_default_empty_and_distinct_from_version() -> None:
     )
     assert m2.api_version == "7.0"
     assert m2.version == "0.1.0"
+
+
+def test_platform_capabilities_default_and_declared() -> None:
+    from moderatorim.sdk import PlatformCapabilities
+
+    # non-platform / undeclared: platform is None (zero impact on existing manifests)
+    plain = Manifest(name="widget", type=UnitType.APP, register=lambda c: None)
+    assert plain.platform is None
+
+    # a platform adapter declares its capability catalog as DATA on the manifest
+    caps = PlatformCapabilities(
+        auth_type="token",
+        ingest_mode="webhook",
+        description="Telegram Bot API adapter",
+        events=(("message", "Message"),),
+        signals=(("text", "Text", "text"),),
+        actions=(("delete", "Delete"),),
+        credentials=("token", ("webhook_secret", True)),
+    )
+    tg = Manifest(
+        name="telegram",
+        type=UnitType.PLATFORM,
+        register=lambda c: None,
+        display_name="Telegram",
+        api_version="7.0",
+        platform=caps,
+    )
+    assert tg.platform is caps
+    assert tg.platform.auth_type == "token" and tg.platform.events[0] == ("message", "Message")
+    # frozen value object (immutable declaration)
+    with pytest.raises(AttributeError):
+        caps.auth_type = "basic_auth"  # type: ignore[misc]
