@@ -323,12 +323,12 @@ def test_list_view_enable_actions_default_and_off() -> None:
     assert ListView(enable_actions=False).enable_actions is False  # read-only list opts out
 
 
-def test_list_view_new_href_default_and_set() -> None:
+def test_list_view_href_default_and_set() -> None:
     from moderatorim.sdk import ListView
 
-    assert ListView().new_href == ""  # default: generated {base}/new
+    assert ListView().href == ""  # default: generated {base}/new
     # a read-only catalog can still point New at a bespoke route
-    assert ListView(enable_actions=False, new_href="/platforms/new").new_href == "/platforms/new"
+    assert ListView(enable_actions=False, href="/platforms/new").href == "/platforms/new"
 
 
 def test_list_view_row_clickable_default_and_set() -> None:
@@ -434,6 +434,48 @@ def test_app_mount_expands_viewroutes_with_permissions() -> None:
     assert not any(r.path.endswith("/delete") for r in app.routes)
     # permission prefix derived from the path for the row-action / table-ACL layer
     assert by[("/widgets", "GET")].resource_permission == "shop.widget"
+
+
+def test_form_view_edit_only_suppresses_new_and_create() -> None:
+    """A FormView with edit_only=True expands only edit/mutate routes — no GET /new, no create
+    POST — so a sibling route (e.g. a discovery picker) can own {base}/new without colliding."""
+    from moderatorim.sdk import (
+        App,
+        Field,
+        FieldType,
+        FormFields,
+        FormTab,
+        FormView,
+        Kind,
+        PageView,
+        TableColumn,
+        TableModel,
+        ViewRoute,
+    )
+
+    Widget = TableModel(
+        name="shop_widget",
+        columns=(TableColumn(name="name", type=FieldType.TEXT, display=True),),
+    )
+
+    form_pv = PageView(
+        model=Widget,
+        view=FormView(
+            edit_only=True,
+            tabs=(FormTab(label="Detail", views=(FormFields(fields=(Field("name"),)),)),),
+        ),
+    )
+    app = App()
+    app.mount((ViewRoute(path="/widgets/{id}", view=form_pv),), permission="shop.widget")
+    paths = {(r.path, r.methods[0]) for r in app.routes if r.kind is Kind.FORM}
+    # edit/mutate routes present
+    assert ("/widgets/{id}", "GET") in paths
+    assert ("/widgets/{id}", "PATCH") in paths
+    assert ("/widgets/{id}", "DELETE") in paths
+    # create routes SUPPRESSED
+    assert ("/widgets/new", "GET") not in paths
+    assert ("/widgets", "POST") not in paths
+    assert len(paths) == 3
 
 
 def test_mount_actions_records_post_route() -> None:
