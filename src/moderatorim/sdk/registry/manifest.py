@@ -15,7 +15,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from moderatorim.sdk.i18n import Locale
-from moderatorim.sdk.models import Extends, TableModel
+from moderatorim.sdk.models import Extends, TableColumn, TableModel
 
 if TYPE_CHECKING:  # pragma: no cover - typing only (avoid a runtime import cycle)
     from moderatorim.sdk.views import PageRoute, Permission
@@ -101,7 +101,12 @@ class AuthMethod:
 EventSpec = tuple[str, str]  # (event_type, label)
 SignalSpec = tuple[str, str, str]  # (field_key, label, field_type)
 ActionSpec = tuple[str, str]  # (action, label)
-CredentialSpec = str | tuple[str, bool]  # key, or (key, secret)
+
+# A credential declaration an adapter lists in `PlatformCapabilities.credentials`: a `TableColumn`
+# (its auth-form field — `secret=True` renders masked + never-echoed), or a legacy `key` /
+# `(key, secret)` tuple (core coerces to a TEXT column, secret per the flag). The catalog of COMMON
+# named credential fields a platform reuses lives in CORE (the platform table's concern), not here.
+CredentialSpec = str | tuple[str, bool] | TableColumn
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

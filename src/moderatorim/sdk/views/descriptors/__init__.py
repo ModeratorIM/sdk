@@ -31,6 +31,7 @@ from moderatorim.sdk.views.descriptors.form import (
     ViewExtension,
 )
 from moderatorim.sdk.views.descriptors.list_ import (
+    GridView,
     ListCard,
     ListCardAction,
     ListCardField,
@@ -66,6 +67,7 @@ __all__ = [
     "ListCard",
     "ListCardAction",
     "ListCardField",
+    "GridView",
     "ListView",
     "MetricSource",
     "ModalAction",

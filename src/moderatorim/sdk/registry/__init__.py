@@ -8,4 +8,10 @@ from moderatorim.sdk.registry.manifest import (
     UnitType,
 )
 
-__all__ = ["AuthMethod", "Manifest", "NavEntry", "PlatformCapabilities", "UnitType"]
+__all__ = [
+    "AuthMethod",
+    "Manifest",
+    "NavEntry",
+    "PlatformCapabilities",
+    "UnitType",
+]

@@ -18,6 +18,7 @@ class Kind(Enum):
     FORM = auto()  # a generated model-driven Form route (core expands it into a handler)
     CALENDAR = auto()  # a generated model-driven Calendar month page (core expands it)
     DASHBOARD = auto()  # a generated DashboardView page of visual widgets (core expands it)
+    GRID = auto()  # a generated model-driven Grid picker page (core expands it into a handler)
 
 
 @dataclass
@@ -247,6 +248,29 @@ class App:
     async def _unset_calendar_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
         raise RuntimeError("Kind.CALENDAR handler is supplied by core at build time")
 
+    def grid_view(self, path: str, *, model: Any, view: Any, permission: str) -> None:
+        """Record a generated Grid PICKER page (``Kind.GRID``) at ``path``, gated at
+        ``{permission}.read``. Table-backed like a List: core supplies the query→render handler at
+        build time (lists the ``model`` — often a :class:`ViewModel` over a computed set — and
+        renders each row as a selectable card + Continue). The chosen value POSTs to the view's
+        ``continue_to`` (declare that sink as a sibling ``Route``)."""
+        self._routes.append(
+            RouteDef(
+                path,
+                ("GET",),
+                handler=self._unset_grid_handler,
+                kind=Kind.GRID,
+                model=model,
+                view=view,
+                permission=f"{permission}.read",
+                resource_permission=permission,
+            )
+        )
+
+    @staticmethod
+    async def _unset_grid_handler(ctx: Any) -> Any:  # pragma: no cover - replaced at build
+        raise RuntimeError("Kind.GRID handler is supplied by core at build time")
+
     def dashboard_view(self, path: str, *, view: Any, permission: str) -> None:
         """Record a generated Dashboard page (``Kind.DASHBOARD``) at ``path``, gated at
         ``{permission}.read``. Core supplies the handler at build time (it resolves each widget's
@@ -368,7 +392,7 @@ class App:
         objects with no decorators — the escape-hatch page for a screen the view generator cannot
         express.
         """
-        from moderatorim.sdk.views import CalendarView, DashboardView, FormView, ListView
+        from moderatorim.sdk.views import CalendarView, DashboardView, FormView, GridView, ListView
 
         seen_form_base: set[str] = set()
         for r in routes:
@@ -390,6 +414,12 @@ class App:
                 self.form_view(base, model=pv.model, view=inner, permission=perm)
             elif isinstance(inner, CalendarView):
                 self.calendar_view(r.path, model=pv.model, view=inner, permission=perm)
+            elif isinstance(inner, GridView):
+                start = len(self._routes)
+                self.grid_view(r.path, model=pv.model, view=inner, permission=perm)
+                if override:
+                    for rd in self._routes[start:]:
+                        rd.permission = override
             elif isinstance(inner, DashboardView):
                 start = len(self._routes)
                 self.dashboard_view(r.path, view=inner, permission=perm)

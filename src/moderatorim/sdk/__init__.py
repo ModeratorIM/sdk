@@ -98,6 +98,7 @@ from moderatorim.sdk.views import (
     FormSave,
     FormTab,
     FormView,
+    GridView,
     ListCard,
     ListCardAction,
     ListCardField,
@@ -188,6 +189,7 @@ __all__ = [
     "TranslationSet",
     # views (declarative model-driven view descriptors)
     "Field",
+    "GridView",
     "ListView",
     "PageView",
     "PageRoute",

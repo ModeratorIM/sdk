@@ -75,6 +75,45 @@ class ListView:
         return tuple(sorted(self.fields, key=lambda f: f.order))
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GridView:
+    """A ListView rendered as a grid of SELECTABLE cards (setup-wizard style) — same table-backed
+    semantics as :class:`ListView`, different UI. The engine lists the ``PageView.model``'s rows and
+    renders each as a radio-selectable card (``fields`` shown per card, ``search``/``sort`` as on a
+    list). Selecting a card enables the view's ``actions`` (declarative :class:`FormAction`s shown
+    in the content header); there is no navigate-on-click and no built-in Continue — the action is
+    the control.
+
+    * ``fields`` — the columns shown on each card, ordered by each :class:`Field`'s ``order``.
+    * ``title_field`` — the field rendered as the card's bold heading (defaults to the model's
+      display column when empty).
+    * ``select_key`` — the column whose value a selected card submits (defaults to the row ``id``).
+    * ``actions`` — the :class:`FormAction`s the selection enables (e.g. open the selected
+      platform). Rendered in the header; disabled until a card is selected.
+    * ``search`` — column names the client-side filter box matches (OR, case-insensitive).
+    * ``sort`` — the initial ``(column, "asc"|"desc")`` order, or None for the store default.
+    * ``empty_label`` — shown when the model lists no rows.
+    """
+
+    fields: tuple[Field, ...] = ()
+    title_field: str = ""
+    select_key: str = ""
+    actions: tuple[Any, ...] = ()  # FormAction(s) enabled by a selection
+    search: tuple[str, ...] = ()
+    sort: tuple[str, str] | None = None
+    empty_label: str = "Nothing here yet."
+    id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
+
+    def __post_init__(self) -> None:
+        if self.sort is not None and (len(self.sort) != 2 or self.sort[1] not in ("asc", "desc")):
+            raise ValueError("GridView.sort must be (column, 'asc'|'desc')")
+
+    @property
+    def ordered_fields(self) -> tuple[Field, ...]:
+        """Fields sorted by their declared ``order`` (stable)."""
+        return tuple(sorted(self.fields, key=lambda f: f.order))
+
+
 # --- Form view (Stage 2) -----------------------------------------------------------------------
 
 

@@ -169,6 +169,7 @@ class TableColumn:
     choices: tuple[Choice, ...] | ChoiceReference = ()
     max_length: int | None = None  # for TEXT/TEXTAREA: VARCHAR(n), validated on save
     encrypt: bool = False  # at-rest encryption, store-honored
+    secret: bool = False  # UI masking: render as a password input + never echo the stored value
     active: bool = True  # shown in the UI (False = hidden from views/forms, NOT dropped)
     read_only: bool = False  # displayed but not editable
     display: bool = False  # THIS column is the record's display value (dropdowns / REF pickers)
