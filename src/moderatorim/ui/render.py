@@ -55,6 +55,7 @@ def render_column(
     options: list[tuple[str, str]] | None = None,
     selected: list[tuple[str, str]] | None = None,
     label: str | None = None,
+    required: bool | None = None,
 ) -> Component:
     """Render one column as its default widget.
 
@@ -64,8 +65,20 @@ def render_column(
     ``label`` overrides the field label: ``None`` (default) uses the column's own label/name; pass
     ``""`` to render the control WITHOUT a label (e.g. a filter value where the field is named
     elsewhere).
+
+    ``required`` overrides the control's HTML ``required`` attribute: ``None`` (default) uses the
+    column's own ``required`` (form behavior); pass ``False`` to force the control OPTIONAL — a
+    filter-condition value, for instance, is never required even when the column it filters is a
+    required storage column (otherwise an empty filter input on a hidden tab blocks the whole page's
+    form submit: "An invalid form control with name='id' is not focusable").
     """
     label = (column.label or column.name) if label is None else label
+    req = column.required if required is None else required
+    # When the caller forces the control optional (req=False), also drop the implied Required
+    # validator — otherwise it re-emits the HTML `required` attribute the override meant to remove.
+    _vals = column_validators(column)
+    if not req:
+        _vals = [v for v in _vals if type(v).__name__ != "Required"]
     t = column.type
 
     if t is FieldType.BOOLEAN:
@@ -76,7 +89,7 @@ def render_column(
             column.name,
             label=label,
             value="" if value is None else str(value),
-            required=column.required,
+            required=req,
             disabled=column.read_only,
         )
 
@@ -114,7 +127,7 @@ def render_column(
         label=label,
         value="" if value is None else str(value),
         type=_INPUT_TYPES.get(t, "text"),
-        required=column.required,
-        validators=column_validators(column),
+        required=req,
+        validators=_vals,
         **extra,
     )

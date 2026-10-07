@@ -34,6 +34,18 @@ def test_date_renders_date_input() -> None:
     assert 'type="date"' in _html(TableColumn(name="d", type=FieldType.DATE))
 
 
+def test_required_column_renders_required_by_default() -> None:
+    html = _html(TableColumn(name="id", type=FieldType.TEXT, required=True))
+    assert "required" in html
+
+
+def test_required_override_false_drops_required() -> None:
+    # A filter value must be optional even when its column is a required storage column — otherwise
+    # an empty required input on a hidden tab blocks the page's form submit (not-focusable error).
+    html = _html(TableColumn(name="id", type=FieldType.TEXT, required=True), required=False)
+    assert "required" not in html
+
+
 def test_choice_renders_select_from_choices() -> None:
     html = _html(
         TableColumn(

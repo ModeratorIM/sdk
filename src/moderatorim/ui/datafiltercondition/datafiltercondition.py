@@ -141,6 +141,7 @@ class DataFilterCondition(Component):
             self.value,
             options=self._current.options or None,
             label="",  # the field is named by the field select; no redundant per-control label
+            required=False,  # a filter value is always optional — never block form submit on it
         )
         return tag("div", control, **{"class": "mim-filter-value"})
 
