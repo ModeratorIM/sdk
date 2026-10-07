@@ -74,6 +74,7 @@ EXPECTED_PUBLIC_API = {
     "TranslationSet",
     # views
     "Field",
+    "GridView",
     "ListView",
     "PageView",
     "PageRoute",

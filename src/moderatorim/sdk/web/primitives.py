@@ -16,11 +16,16 @@ Content = list[Any]
 @dataclass
 class Page:
     """A full page a ``@app.page`` handler returns. Normal GET → wrapped in the shell (full doc);
-    ``HX-Request`` → body fragment + central ``HX-Push-Url``."""
+    ``HX-Request`` → body fragment + central ``HX-Push-Url``.
+
+    ``header_actions`` is an OPTIONAL list of pre-rendered controls the shell places in the content
+    header's right slot (e.g. a GridView picker's Continue button). The shell callback forwards it;
+    ``None`` keeps the header's default actions only."""
 
     title: str
     content: Content
     permission: str | None = None
+    header_actions: list[Any] | None = None
 
 
 @dataclass

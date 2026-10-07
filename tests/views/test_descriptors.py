@@ -339,6 +339,45 @@ def test_list_view_row_clickable_default_and_set() -> None:
     assert ListView(enable_actions=False, row_clickable=True).row_clickable is True
 
 
+def test_grid_view_has_listview_semantics() -> None:
+    import pytest
+
+    from moderatorim.sdk import Field, GridView
+
+    gv = GridView(
+        fields=(Field(name="code", order=20), Field(name="name", order=10)),
+        title_field="name",
+        search=("name", "code"),
+        sort=("name", "asc"),
+    )
+    assert gv.title_field == "name" and gv.search == ("name", "code")
+    # fields order by Field.order (stable), like ListView
+    assert [f.name for f in gv.ordered_fields] == ["name", "code"]
+    # defaults: no title_field required, no continue/picker fields
+    assert GridView().title_field == "" and GridView().fields == ()
+    with pytest.raises(ValueError, match="sort"):
+        GridView(sort=("name", "sideways"))
+
+
+def test_grid_view_mounts_as_kind_grid() -> None:
+    from moderatorim.sdk import App, Field, GridView, Kind
+
+    gv = GridView(fields=(Field(name="name"),), title_field="name")
+    app = App()
+    app.grid_view("/platforms/new", model=object(), view=gv, permission="platform.catalog")
+    r = app.routes[0]
+    assert r.kind is Kind.GRID and r.methods == ("GET",)
+    assert r.permission == "platform.catalog.read"
+    assert r.resource_permission == "platform.catalog"
+
+
+def test_table_column_secret_flag() -> None:
+    from moderatorim.sdk import FieldType, TableColumn
+
+    assert TableColumn(name="x", type=FieldType.TEXT).secret is False  # default
+    assert TableColumn(name="api_key", type=FieldType.TEXT, secret=True).secret is True
+
+
 def test_app_mount_expands_viewroutes_with_permissions() -> None:
     from moderatorim.sdk import (
         App,

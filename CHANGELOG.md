@@ -10,6 +10,17 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`TableColumn.secret`** — a UI-masking flag: a secret column renders as a password input whose
+  stored value is never echoed back (blank submit = leave unchanged). Distinct from `encrypt`
+  (at-rest storage). Used by the platform Authentication tab's credential fields. The catalog of
+  common named credential fields that reuse this flag lives in CORE (the platform table's concern),
+  not in the SDK manifest. `PlatformCapabilities.credentials` accepts a `TableColumn` (an adapter's
+  own auth field) alongside the legacy `str` / `(key, secret)` forms.
+- **`GridView`** — a `ListView` rendered as a grid of cards instead of a table: same semantics
+  (`fields`/`search`/`sort`, table-backed), different UI. A card-click navigates to the record
+  (`{base}/{id}`) like a clickable list row — no built-in picker/Continue (any add control is an
+  ordinary `FormAction`). Dispatched by `PageView`/`ViewRoute` as a new `Kind.GRID`; core supplies
+  the query→render handler. Used for the platform catalog's card view.
 - **`ListView.row_clickable`** — opt a READ-ONLY list's rows back into navigation. A read-only list
   (`enable_actions=False`) normally has non-clickable rows (its generated form routes don't exist);
   set this True when the list DOES have a destination form at `{base}/{id}` (e.g. the platform
