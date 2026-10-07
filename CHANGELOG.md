@@ -69,6 +69,16 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   Backward-compatible (default `()` = no filter); the consuming sink applies it at resolve + save.
 
 ### Fixed
+
+- **Filter value controls are no longer `required`** — a `DataFilterCondition`'s value input is
+  built via `render_column`, which propagated the column's own `required` (and its implied
+  `Required` validator) into the control. For a filter over a required storage column (e.g. a
+  default `id`/`code` field) this emitted `<input required>` with an empty value; on a page whose
+  active form submits, the browser rejected the submit with *"An invalid form control with
+  name='…' is not focusable"* because the empty required input lives on a hidden tab. `render_column`
+  now takes an optional `required` override, and the filter condition passes `required=False` (also
+  dropping the implied `Required` validator), so a filter value is always optional. Affects every
+  embedded list with a filter builder (admin forms + the platform capability tabs).
 - **FormView block spacing** — consecutive `FormFields` grids (`.mim-form-grid`) are now separated
   by `margin-bottom` (the grid's own `gap` only spaced fields WITHIN a block, so two stacked blocks
   — e.g. a paired name+platform row then a full-width description — rendered flush together).
