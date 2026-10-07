@@ -27,7 +27,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   catalog → per-platform FormView) so a row-click navigates there while Edit/Delete/New stay
   suppressed. Honours read permission; ignored on actionable or `multiselect` lists.
   Backward-compatible (`False` default). Pairs with a core `render_list` branch.
-- **`ListView.new_href`** — an optional custom path for the toolbar "New" button. When set, New
+- **`FormView.edit_only`** — suppress the generated `GET {base}/new` blank-create form AND the
+  `POST {base}` create route for a FormView whose "add" entry point is a SIBLING view (e.g. a
+  discovery picker) that owns `{base}/new` itself. The form then expands only its edit/mutate
+  routes (`{base}/{id}` GET/PATCH/DELETE), so a sibling route at `{base}/new` no longer collides
+  with the form's auto-generated create route. Backward-compatible (`False` default keeps the full
+  RESTful expansion). Used by the platform catalog, whose `/platforms/new` is the adapter picker.
+- **`ListView.href`** — an optional custom path for the toolbar "New" button. When set, New
   navigates there instead of the generated `{base}/new` CRUD form — the entry point for a read-only
   catalog (`enable_actions=False`) whose "add" flow is a bespoke route (e.g. the platform catalog's
   `/platforms/new` picker). Renders independently of `enable_actions` but still honours the

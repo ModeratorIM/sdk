@@ -142,6 +142,7 @@ class App:
         view: Any,
         permission: str,
         title: str | None = None,
+        edit_only: bool = False,
     ) -> None:
         """Register a GENERATED model-driven Form (new + edit + create/update/delete).
 
@@ -151,7 +152,12 @@ class App:
         ``/delete`` path suffix). Each gates on its own single CRUD permission
         (``{permission}.create/.read/.update/.delete``). No handler — core supplies each per
         ``form_op`` (host-owns-rendering seam); the edit/delete controls issue PATCH/DELETE via
-        htmx."""
+        htmx.
+
+        ``edit_only`` suppresses the GET ``{base}/new`` blank-create form AND the POST ``{base}``
+        create route — for a resource whose "add" entry point is a SIBLING view (e.g. a discovery
+        picker) that owns ``{base}/new`` itself. The form then expands only its edit/mutate routes
+        (``{base}/{id}`` GET/PATCH/DELETE), so it never collides with that sibling."""
 
         def _fd(path: str, methods: tuple[str, ...], op: str, perm: str) -> RouteDef:
             return RouteDef(
@@ -167,15 +173,23 @@ class App:
                 form_op=op,
             )
 
-        self._routes.extend(
-            [
-                _fd(f"{base_path}/new", ("GET",), "new", f"{permission}.create"),
-                _fd(f"{base_path}/{{id}}", ("GET",), "edit", f"{permission}.read"),
-                _fd(base_path, ("POST",), "create", f"{permission}.create"),
-                _fd(f"{base_path}/{{id}}", ("PATCH",), "update", f"{permission}.update"),
-                _fd(f"{base_path}/{{id}}", ("DELETE",), "delete", f"{permission}.delete"),
-            ]
-        )
+        edit_routes = [
+            _fd(f"{base_path}/{{id}}", ("GET",), "edit", f"{permission}.read"),
+            _fd(f"{base_path}/{{id}}", ("PATCH",), "update", f"{permission}.update"),
+            _fd(f"{base_path}/{{id}}", ("DELETE",), "delete", f"{permission}.delete"),
+        ]
+        if edit_only:
+            # A sibling view (e.g. a discovery picker) owns {base}/new + creation; emit edit/mutate
+            # routes only, so the form never synthesizes a colliding {base}/new.
+            self._routes.extend(edit_routes)
+        else:
+            self._routes.extend(
+                [
+                    _fd(f"{base_path}/new", ("GET",), "new", f"{permission}.create"),
+                    _fd(base_path, ("POST",), "create", f"{permission}.create"),
+                    *edit_routes,
+                ]
+            )
         # One ACTION route per declared FormAction, at {base}/{id}/action/{idx}, routed to the
         # action's OWN handler. The action's roles= gate the BUTTON at render (L3); the route is
         # permission-gated at the resource's .update floor (a form action mutates the record).
@@ -411,7 +425,13 @@ class App:
                 if base in seen_form_base:
                     continue  # the sibling binding (/new vs /{id}) already expanded the form set
                 seen_form_base.add(base)
-                self.form_view(base, model=pv.model, view=inner, permission=perm)
+                self.form_view(
+                    base,
+                    model=pv.model,
+                    view=inner,
+                    permission=perm,
+                    edit_only=getattr(inner, "edit_only", False),
+                )
             elif isinstance(inner, CalendarView):
                 self.calendar_view(r.path, model=pv.model, view=inner, permission=perm)
             elif isinstance(inner, GridView):

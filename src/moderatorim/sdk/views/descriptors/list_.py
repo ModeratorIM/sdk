@@ -34,10 +34,10 @@ class ListView:
       would see action controls linking to form routes that do not exist. A suppress-only VETO:
       permission (``ctx.can``) decides whether the CRUD buttons show; this only forces them off.
       Independent of permission gating.
-    * ``new_href`` — an OPTIONAL custom path for the toolbar "New" button. When set, the New button
-      navigates here (a full-page GET) instead of the generated ``{base}/new`` CRUD form — the
-      entry point for a read-only catalog (``enable_actions=False``) whose "add" flow is a BESPOKE
-      route, not the generated create form (e.g. the platform catalog's ``/platforms/new`` picker).
+    * ``href`` — an OPTIONAL custom path for the toolbar "New" button. When set, it OVERRIDES the
+      default and the New button navigates here (a full-page GET) instead of the generated
+      ``{base}/new`` CRUD form — the entry point for a read-only catalog (``enable_actions=False``)
+      whose "add" flow is a BESPOKE route (e.g. the platform catalog's ``/platforms/new`` picker).
     * ``row_clickable`` — on a READ-ONLY list (``enable_actions=False``) rows are normally
       non-navigable, because the generated form routes they would open do not exist. Set this True
       when a read-only list DOES have a destination form at ``{base}/{id}`` (e.g. the platform
@@ -52,7 +52,7 @@ class ListView:
     filters: tuple[str, ...] = ()
     sort: tuple[str, str] | None = None
     enable_actions: bool = True
-    new_href: str = ""
+    href: str = ""
     row_clickable: bool = False
     # The column whose value is the checkbox's submitted key when `multiselect` is set (defaults
     # to the display column). For roles' permission picker this is "permission".

@@ -223,6 +223,7 @@ class FormView:
     actions: tuple[FormAction, ...] = ()
     badges: tuple[StatusBadge, ...] = ()  # record-status chips beside Edit (presentation-only)
     save: FormSave | None = None
+    edit_only: bool = False  # suppress the generated /new + create route (a sibling picker owns it)
     id: str = ""  # view-object identity → DOM id / htmx target / CSS hook when set (D5)
 
     def __post_init__(self) -> None:
