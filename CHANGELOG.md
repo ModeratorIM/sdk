@@ -68,6 +68,19 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
   rows a dynamic CHOICE offers (e.g. `where=(("active", True),)` to offer only active catalog rows).
   Backward-compatible (default `()` = no filter); the consuming sink applies it at resolve + save.
 
+### Changed
+
+- **`form_view` binds ONE table-driven action route** — instead of one positional
+  `{base}/{id}/action/{idx}` route per declared `FormAction` (each bound to the descriptor's own
+  handler), `form_view` now emits a SINGLE `{base}/{id}/action/{action_id}` route whose
+  `{action_id}` is a `core_action` row id and whose handler core supplies at build time (like a
+  `Kind.FORM` route). Core loads the row, applies its per-row any-of role gate, resolves the
+  registered handler by name, and invokes it. The route carries `resource_permission` + a `.read`
+  floor (reach-the-form); authorization is the per-row role gate. Part of table-driven-actions: a
+  `FormAction` is SEEDED into `core_action` at boot and the renderer reads the table.
+  `FormView.all_actions` remains (it defines the boot-seed order) but no longer drives route
+  binding.
+
 ### Fixed
 
 - **Filter value controls are no longer `required`** — a `DataFilterCondition`'s value input is

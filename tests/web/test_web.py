@@ -37,6 +37,35 @@ def test_action_custom_methods() -> None:
     assert app.routes[0].methods == ("POST", "DELETE")
 
 
+def test_form_view_binds_single_rowid_action_route() -> None:
+    """table-driven-actions: form_view emits ONE {id}/action/{action_id} route (row-id, core
+    dispatcher) — NOT one positional /action/{idx} per declared FormAction. The route carries the
+    resource_permission + a .read floor; the per-row role gate is enforced by core's dispatcher."""
+    from moderatorim.sdk import FieldType, FormAction, FormTab, FormView, TableColumn, TableModel
+
+    model = TableModel(name="t_rec", columns=(TableColumn(name="name", type=FieldType.TEXT),))
+    view = FormView(
+        actions=(FormAction(label="A", handler=lambda c: None),),
+        tabs=(
+            FormTab(
+                label="Detail",
+                actions=(FormAction(label="B", handler=lambda c: None),),
+            ),
+        ),
+    )
+    app = App()
+    app.form_view("/recs", model=model, view=view, permission="x.recs")
+
+    action_routes = [r for r in app.routes if r.kind is Kind.ACTION]
+    # exactly ONE action route regardless of how many FormActions are declared (2 here)
+    assert len(action_routes) == 1
+    r = action_routes[0]
+    assert r.path == "/recs/{id}/action/{action_id}"
+    assert r.methods == ("POST",)
+    assert r.permission == "x.recs.read"  # reach-the-form floor; role gate is per-row in core
+    assert r.resource_permission == "x.recs"
+
+
 def test_nav_routes_only_nav_declared() -> None:
     app = App()
 
