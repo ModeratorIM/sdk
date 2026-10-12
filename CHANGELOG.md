@@ -10,6 +10,12 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`FormFields.model`** — the table a field block edits and saves (default `None` = the form's
+  mount/record model, unchanged). Mirrors `FormList.model`: the child view owns its binding, not
+  the enclosing tab. Set it to a different table (e.g. a satellite like `core_platform_credential`)
+  and the block renders + saves that table's columns via the per-tab save path — the primitive that
+  lets each tab of a multi-tab form edit and save its own table (per-tab form save). A tab may hold
+  a `FormFields` alongside a `FormList`, each with its own `model`. Backward-compatible.
 - **`TableColumn.secret`** — a UI-masking flag: a secret column renders as a password input whose
   stored value is never echoed back (blank submit = leave unchanged). Distinct from `encrypt`
   (at-rest storage). Used by the platform Authentication tab's credential fields. The catalog of
@@ -70,6 +76,11 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ### Changed
 
+- **BREAKING — `FormView.actions` removed** (and the `FormView.all_actions` property). Actions now
+  live on `FormTab.actions` only (per-tab overflow); a form-level action list and its
+  `/action/{idx}` index space are gone. A tab's header controls derive from that tab's own
+  `views`/`actions`. No SDK or app call site set `FormView(actions=...)` (every action was already
+  on a tab), so this removes an unused escape hatch — but it IS a contract removal (pre-1.0 minor).
 - **`form_view` binds ONE table-driven action route** — instead of one positional
   `{base}/{id}/action/{idx}` route per declared `FormAction` (each bound to the descriptor's own
   handler), `form_view` now emits a SINGLE `{base}/{id}/action/{action_id}` route whose

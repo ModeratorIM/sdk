@@ -17,13 +17,23 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FormFields:
-    """A form child view: renders the record's OWN fields in a ``columns``-wide grid.
+    """A form child view: renders a ``columns``-wide grid of ``fields``.
+
+    ``model`` is the table this field block edits and saves — mirroring :class:`FormList.model`,
+    the child view owns its binding, NOT the enclosing tab. ``model=None`` (the default) means the
+    record's OWN table (the form's mount model) — today's behaviour, unchanged. Set ``model`` to a
+    DIFFERENT table (e.g. a satellite like ``core_platform_credential``) and this block renders +
+    saves that table's columns via the per-tab save path (per-tab-form-save PT1); its widgets
+    resolve against ``model``'s columns, exactly as a ``FormList`` resolves its ``view`` against
+    its own ``model``. One tab may hold a ``FormFields`` (its editable block) alongside a
+    ``FormList`` (a related list) — each child declares its own binding, so there is no ambiguity.
 
     Widget per field comes from the model column's ``FieldType`` (core owns the mapping). Fields
     auto-flow across ``columns`` by their ``order``; ``Field(span=k)`` widens one. ``columns``
     (default 1) collapses to 1 on mobile — it lives HERE, not on the tab or the FormView.
     """
 
+    model: Any = None  # the table this block edits/saves; None → the mount/record model (unchanged)
     fields: tuple[Field, ...] = ()
     columns: int = 1
     order: int = 100
@@ -207,20 +217,24 @@ class FormSave(Protocol):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FormView:
-    """A single root form view composed of :class:`FormTab`s (ordered) + declared ``actions``.
+    """A single root form view composed of :class:`FormTab`s (ordered).
 
     New and Edit share one FormView — edit pre-fills from the resolved record; create renders empty
     (``ctx.is_new``). The first tab (lowest order) is the default.
+
+    Actions live on :class:`FormTab.actions` (per-tab overflow), NOT on the FormView — a form-level
+    action list was dropped (per-tab-form-save PT5): every action belongs to a tab, so a tab's
+    header controls derive from that tab's own ``views``/``actions``, with no form-wide index space.
 
     ``save`` is an OPTIONAL delegate (a :class:`FormSave`). When set, core routes the form's
     create/update/delete through it INSTEAD of the generic ``ctx.store`` write path — the seam for
     a resource whose mutations must run domain logic (e.g. roles reconcile grants + guard system
     rows via ``ctx.authz.define_role``, never a raw table write). When None (the default) the
-    generic store path is used, unchanged.
+    generic store path is used, unchanged. ``save`` is dispatched on the active tab's
+    :attr:`FormFields.model`, so one delegate can branch per table for a multi-tab form.
     """
 
     tabs: tuple[FormTab, ...] = ()
-    actions: tuple[FormAction, ...] = ()
     badges: tuple[StatusBadge, ...] = ()  # record-status chips beside Edit (presentation-only)
     save: FormSave | None = None
     edit_only: bool = False  # suppress the generated /new + create route (a sibling picker owns it)
@@ -237,22 +251,6 @@ class FormView:
     @property
     def ordered_tabs(self) -> tuple[FormTab, ...]:
         return tuple(sorted(self.tabs, key=lambda t: t.order))
-
-    @property
-    def ordered_actions(self) -> tuple[FormAction, ...]:
-        return tuple(sorted(self.actions, key=lambda a: a.order))
-
-    @property
-    def all_actions(self) -> tuple[FormAction, ...]:
-        """The unified, ordered action list that defines the ``/action/{idx}`` index space:
-        form-level actions first, then each tab's actions in tab order (tabbed-form-subviews §3).
-        BOTH the route binding (``App.form_view``) and the core renderer walk THIS list, so a
-        per-tab action button's index matches the route core bound for it.
-        """
-        out: list[FormAction] = list(self.ordered_actions)
-        for tab in self.ordered_tabs:
-            out.extend(tab.ordered_actions)
-        return tuple(out)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

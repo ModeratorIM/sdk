@@ -45,10 +45,13 @@ def test_form_view_binds_single_rowid_action_route() -> None:
 
     model = TableModel(name="t_rec", columns=(TableColumn(name="name", type=FieldType.TEXT),))
     view = FormView(
-        actions=(FormAction(label="A", handler=lambda c: None),),
         tabs=(
             FormTab(
                 label="Detail",
+                actions=(FormAction(label="A", handler=lambda c: None),),
+            ),
+            FormTab(
+                label="More",
                 actions=(FormAction(label="B", handler=lambda c: None),),
             ),
         ),

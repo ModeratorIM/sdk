@@ -110,11 +110,10 @@ def test_form_descriptors() -> None:
         FormAction(label="x", handler=None)
 
     fv = FormView(
-        tabs=(FormTab(label="B", order=20), FormTab(label="A", order=10)),
-        actions=(act,),
+        tabs=(FormTab(label="B", order=20, actions=(act,)), FormTab(label="A", order=10)),
     )
     assert [t.label for t in fv.ordered_tabs] == ["A", "B"]  # by order
-    assert fv.ordered_actions[0] is act
+    assert fv.ordered_tabs[1].ordered_actions[0] is act  # action lives on its tab (B)
     with pytest.raises(ValueError, match="at least one FormTab"):
         FormView(tabs=())
 
@@ -155,7 +154,7 @@ def test_modalview_and_modalaction() -> None:
 
 
 def test_formtab_actions_and_formlist() -> None:
-    from moderatorim.sdk import FormAction, FormList, FormTab, ListView
+    from moderatorim.sdk import FormAction, FormFields, FormList, FormTab, ListView
 
     # FormTab.actions default empty; ordered_actions sorts by order.
     assert FormTab(label="D").actions == ()
@@ -164,15 +163,20 @@ def test_formtab_actions_and_formlist() -> None:
     tab = FormTab(label="Permissions", actions=(a1, a2))
     assert [a.label for a in tab.ordered_actions] == ["Edit", "Add"]  # by order
 
-    # all_actions on the view = form-level actions first, then each tab's (tab order) — the
-    # unified /action/{idx} index space shared by route-binding and the renderer.
+    # actions live on FormTab only (per-tab-form-save PT5): FormView has no form-level `actions`
+    # and no `all_actions` index space any more. A tab's actions are its own overflow.
     from moderatorim.sdk import FormView
 
     fv = FormView(
-        actions=(FormAction(label="Delete", handler=lambda ctx: None, order=5),),
         tabs=(FormTab(label="Perms", order=10, actions=(a2, a1)),),
     )
-    assert [a.label for a in fv.all_actions] == ["Delete", "Edit", "Add"]
+    assert not hasattr(fv, "all_actions")
+    with pytest.raises(TypeError):
+        FormView(  # type: ignore[call-arg]
+            actions=(FormAction(label="X", handler=lambda ctx: None),),
+            tabs=(FormTab(label="D"),),
+        )
+    assert [a.label for a in fv.ordered_tabs[0].ordered_actions] == ["Edit", "Add"]
 
     # FormList carries a related model + a ListView, with an optional refresh id (D5).
     lv = ListView(fields=())
@@ -188,6 +192,14 @@ def test_formtab_actions_and_formlist() -> None:
         FormList(model=None, view=lv)
     with pytest.raises(ValueError, match="view"):
         FormList(model="x", view=None)
+
+    # FormFields.model (per-tab-form-save PT1): defaults None = the record's own table; set it to
+    # bind this block to a different table (mirrors FormList.model). columns still validated.
+    assert FormFields(fields=(Field("name"),)).model is None  # unchanged default
+    ff = FormFields(model="core_platform_credential", fields=(Field("token"),))
+    assert ff.model == "core_platform_credential"
+    with pytest.raises(ValueError, match="columns"):
+        FormFields(columns=0)
 
 
 def test_list_card() -> None:
