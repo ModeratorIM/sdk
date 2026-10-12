@@ -10,6 +10,14 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **`form_view` expands a per-tab save route** — `PATCH {base}/{id}/tab/{tab}` for each EDITABLE
+  non-Detail tab (a tab holding a `FormFields` whose `model` differs from the mount model, i.e. it
+  saves a different table). `{tab}` is the tab's `id` (such a tab must set `FormTab.id`, else the
+  expansion raises). The whole-form `PATCH {base}/{id}` stays the Detail (mount-model) tab's save,
+  so single-tab forms are unchanged; read-only (FormList) tabs expand no save route. Carries
+  `form_op="tab_update"`; core supplies the handler at build time (validates the tab's
+  `FormFields.model` + that block's fields, writes via the model-dispatched `FormView.save` or the
+  generic store). Pairs with `FormFields.model`.
 - **`FormFields.model`** — the table a field block edits and saves (default `None` = the form's
   mount/record model, unchanged). Mirrors `FormList.model`: the child view owns its binding, not
   the enclosing tab. Set it to a different table (e.g. a satellite like `core_platform_credential`)
