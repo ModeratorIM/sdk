@@ -69,6 +69,68 @@ def test_form_view_binds_single_rowid_action_route() -> None:
     assert r.resource_permission == "x.recs"
 
 
+def test_form_view_expands_per_tab_save_routes() -> None:
+    """per-tab-form-save: an EDITABLE non-Detail tab (a FormFields whose model != mount model)
+    expands PATCH {base}/{id}/tab/{tab_id}; Detail (model=None) keeps the whole-form {base}/{id};
+    a read-only (FormList) tab expands no save route."""
+    import pytest
+
+    from moderatorim.sdk import (
+        Field,
+        FieldType,
+        FormFields,
+        FormList,
+        FormTab,
+        FormView,
+        ListView,
+        TableColumn,
+        TableModel,
+    )
+
+    model = TableModel(name="t_rec", columns=(TableColumn(name="name", type=FieldType.TEXT),))
+    sat = TableModel(name="t_sat", columns=(TableColumn(name="token", type=FieldType.TEXT),))
+    view = FormView(
+        tabs=(
+            FormTab(label="Detail", order=10, views=(FormFields(fields=(Field("name"),)),)),
+            FormTab(
+                label="Credential",
+                id="credential",
+                order=20,
+                views=(FormFields(model=sat, fields=(Field("token"),)),),
+            ),
+            FormTab(
+                label="History",
+                order=30,
+                views=(FormList(model=sat, view=ListView(fields=())),),
+            ),
+        ),
+    )
+    app = App()
+    app.form_view("/recs", model=model, view=view, permission="x.recs")
+
+    tab_routes = [r for r in app.routes if r.kind is Kind.FORM and "/tab/" in r.path]
+    assert len(tab_routes) == 1  # only the Credential tab (satellite-bound FormFields)
+    tr = tab_routes[0]
+    assert tr.path == "/recs/{id}/tab/credential"
+    assert tr.methods == ("PATCH",)
+    assert tr.form_op == "tab_update"
+    assert tr.permission == "x.recs.update"
+    assert tr.resource_permission == "x.recs"
+    # Detail still has the whole-form PATCH {base}/{id}; no /tab/ route for it.
+    whole = [r for r in app.routes if r.path == "/recs/{id}" and r.methods == ("PATCH",)]
+    assert len(whole) == 1 and whole[0].form_op == "update"
+
+    # A non-default-model FormFields tab WITHOUT an id is refused (no addressable route).
+    bad = FormView(
+        tabs=(
+            FormTab(label="Detail", order=10, views=(FormFields(fields=(Field("name"),)),)),
+            FormTab(label="Credential", order=20, views=(FormFields(model=sat, fields=()),)),
+        ),
+    )
+    with pytest.raises(ValueError, match="must set FormTab.id"):
+        App().form_view("/bad", model=model, view=bad, permission="x.bad")
+
+
 def test_nav_routes_only_nav_declared() -> None:
     app = App()
 
