@@ -9,6 +9,16 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **`form_view` no longer mistakes a read-only `ListCard` for an editable `FormFields`.** The
+  per-tab-save-route expansion duck-typed a tab's fieldblock as "has `fields` + `model`, no
+  `view`" — but a `ListCard` is structurally identical, so a tab holding a model-bound display
+  card (e.g. the Sessions/activity card) was treated as savable and wrongly required `FormTab.id`,
+  raising `a tab whose FormFields binds a non-default model must set FormTab.id` at mount. The
+  check now also requires the `FormFields`-only `columns` attribute, so a `ListCard` is correctly
+  skipped (no per-tab save route, no id required). Editable `FormFields(model=…)` tabs are
+  unaffected and still require an id.
+
 ### Added
 - **`form_view` expands a per-tab save route** — `PATCH {base}/{id}/tab/{tab}` for each EDITABLE
   non-Detail tab (a tab holding a `FormFields` whose `model` differs from the mount model, i.e. it
