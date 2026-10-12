@@ -236,3 +236,19 @@ def test_operators_for_derives_from_field_type() -> None:
     assert not is_filterable(FieldType.OBJECT)
     # operators_for reads the public table (single source of truth).
     assert operators_for(FieldType.FLOAT) == FIELD_TYPE_OPERATORS[FieldType.FLOAT]
+
+
+def test_resolved_schema_label_defaults_empty_and_is_optional() -> None:
+    """ResolvedSchema gained an optional `label` (the model's display name). It defaults to "" so
+    every existing positional construction (table, columns, soft_delete) still works unchanged."""
+    from moderatorim.sdk.models import ResolvedColumn, ResolvedSchema
+    from moderatorim.sdk.models.field import FieldType, TableColumn
+
+    col = ResolvedColumn("id", TableColumn(name="id", type=FieldType.TEXT))
+    # positional, no label -> backward compatible, label defaults to ""
+    s = ResolvedSchema("core_user", (col,), False)
+    assert s.label == ""
+    # label carries the human name
+    s2 = ResolvedSchema("core_user", (col,), False, label="Users")
+    assert s2.label == "Users"
+    assert s2.column_names() == ("id",)
