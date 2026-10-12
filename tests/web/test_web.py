@@ -131,6 +131,43 @@ def test_form_view_expands_per_tab_save_routes() -> None:
         App().form_view("/bad", model=model, view=bad, permission="x.bad")
 
 
+def test_form_view_readonly_listcard_tab_needs_no_id() -> None:
+    """Regression: a tab holding a model-bound read-only ListCard (e.g. the Sessions card) must NOT
+    be mistaken for an editable FormFields block — it expands no per-tab save route and needs no
+    FormTab.id. ListCard and FormFields are structurally alike (fields+model, no view); the
+    fieldblock check keys off the FormFields-only `columns` attribute to tell them apart."""
+
+    from moderatorim.sdk import (
+        Field,
+        FieldType,
+        FormFields,
+        FormTab,
+        FormView,
+        ListCard,
+        ListCardField,
+        TableColumn,
+        TableModel,
+    )
+
+    model = TableModel(name="t_rec2", columns=(TableColumn(name="name", type=FieldType.TEXT),))
+    sess = TableModel(name="t_sess", columns=(TableColumn(name="ip", type=FieldType.TEXT),))
+    view = FormView(
+        tabs=(
+            FormTab(label="Detail", order=10, views=(FormFields(fields=(Field("name"),)),)),
+            # a read-only sessions-style card bound to a DIFFERENT model, NO tab id — must not raise
+            FormTab(
+                label="Sessions",
+                order=20,
+                views=(ListCard(model=sess, fields=(ListCardField(label="IP", value="ip"),)),),
+            ),
+        ),
+    )
+    app = App()
+    app.form_view("/recs2", model=model, view=view, permission="x.recs2")  # must not raise
+    tab_routes = [r for r in app.routes if r.kind is Kind.FORM and "/tab/" in r.path]
+    assert tab_routes == []  # the ListCard tab expands NO per-tab save route
+
+
 def test_nav_routes_only_nav_declared() -> None:
     app = App()
 

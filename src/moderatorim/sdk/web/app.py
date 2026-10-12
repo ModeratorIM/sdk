@@ -592,10 +592,20 @@ def _ordered_tabs(view: Any) -> tuple[Any, ...]:
 def _tab_fieldblock(tab: Any) -> Any | None:
     """The tab's editable ``FormFields`` child, or ``None`` if it has none (read-only tab).
 
-    Duck-typed: a ``FormFields`` carries ``fields`` + ``model`` and — unlike ``FormList`` — has NO
-    ``view`` attribute. Returns the first such child in the tab's ``views``."""
+    Duck-typed, and deliberately narrow: a ``FormFields`` carries ``fields`` + ``model`` + the
+    FormFields-only ``columns`` attribute, and — unlike ``FormList`` — has NO ``view``. The
+    ``columns`` check matters because a read-only ``ListCard`` is otherwise structurally identical
+    (``fields`` + ``model``, no ``view``) and would be misread as an editable block, making a
+    sessions/activity CARD demand a per-tab SAVE route it never uses. ``ListCard`` has no
+    ``columns``, so requiring it excludes the display cards. Returns the first matching child.
+    """
     for child in getattr(tab, "views", ()) or ():
-        if hasattr(child, "fields") and hasattr(child, "model") and not hasattr(child, "view"):
+        if (
+            hasattr(child, "fields")
+            and hasattr(child, "model")
+            and hasattr(child, "columns")
+            and not hasattr(child, "view")
+        ):
             return child
     return None
 
