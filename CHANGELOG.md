@@ -9,6 +9,13 @@ All notable changes to `moderatorim-sdk` are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **`ResolvedSchema.label`** — the resolved schema now carries the model's human display name (e.g.
+  `Users` for `core_user`), defaulting to `""` when the model declared none. Lets consumers that
+  see only the resolved schema (a backend, the schema-introspection materializer) surface the
+  label without the originating `TableModel`. Optional + defaulted, so every existing positional
+  `ResolvedSchema(table, columns, soft_delete)` construction is unchanged.
+
 ### Fixed
 - **`form_view` no longer mistakes a read-only `ListCard` for an editable `FormFields`.** The
   per-tab-save-route expansion duck-typed a tab's fieldblock as "has `fields` + `model`, no

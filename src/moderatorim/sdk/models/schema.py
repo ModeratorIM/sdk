@@ -23,14 +23,17 @@ class ResolvedColumn:
 class ResolvedSchema:
     """The final, materializable schema a backend provisions.
 
-    Carries the table name, the ordered columns (including the implicit primary key and, when
-    ``soft_delete`` is set, the soft-delete marker), and the soft_delete flag. A backend maps each
-    column's :class:`~moderatorim.sdk.models.field.FieldType` onto its own storage.
+    Carries the table name, a human ``label`` (the model's display name, e.g. ``Users`` for
+    ``core_user`` — empty when the model declared none), the ordered columns (including the
+    implicit primary key and, when ``soft_delete`` is set, the soft-delete marker), and the
+    soft_delete flag. A backend maps each column's
+    :class:`~moderatorim.sdk.models.field.FieldType` onto its own storage.
     """
 
     table: str
     columns: tuple[ResolvedColumn, ...]
     soft_delete: bool
+    label: str = ""
 
     def column_names(self) -> tuple[str, ...]:
         return tuple(c.name for c in self.columns)
