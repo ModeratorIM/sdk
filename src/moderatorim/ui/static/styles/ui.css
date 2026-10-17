@@ -319,10 +319,16 @@
   color: var(--on-surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--mim-view-radius);
-  overflow: hidden;
+  /* overflow VISIBLE (not hidden) so the header's more_vert overflow menu (position:absolute) can
+     float OUT of the card instead of being clipped at its edge. Corners are clipped PER-CHILD
+     instead (the top full-bleed child rounds its own outer corners), exactly as .mim-list does for
+     the columns popup — see .mim-form-errors / .mim-form-header below. */
+  overflow: visible;
 }
 .mim-form { display: flex; flex-direction: column; }
-/* Error banner at the top of the card (soft error tint). */
+/* Error banner at the top of the card (soft error tint). Its top corners are rounded by the
+   `.mim-form > …:first-child` rule below (only when it IS the first child), so with the card now
+   overflow:visible the full-bleed banner still matches the card's rounded top. */
 .mim-form-errors {
   margin: 0;
   list-style: none;
@@ -347,6 +353,14 @@
   padding: 0.6rem var(--mim-view-pad);
   border-bottom: 1px solid var(--outline-variant);
   background: var(--surface-container, var(--surface));
+}
+/* Top full-bleed child rounds its own top corners to match the card (which is now overflow:visible
+   so the overflow menu can float free). Scoped to :first-child so only the element actually at the
+   card top rounds — the error banner when present, else the header — no notch between them. */
+.mim-form > .mim-form-header:first-child,
+.mim-form > .mim-form-errors:first-child {
+  border-top-left-radius: var(--mim-view-radius);
+  border-top-right-radius: var(--mim-view-radius);
 }
 .mim-form-title { margin: 0; font-size: 1rem; }
 .mim-form-actions { display: flex; gap: 0.5rem; align-items: center; }
