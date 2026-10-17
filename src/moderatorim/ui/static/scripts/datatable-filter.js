@@ -32,6 +32,41 @@
     }
   }
 
+  // Anchor an open row-actions menu with position:FIXED (viewport-relative) so it escapes every
+  // scroll/overflow ancestor — the form card is overflow:visible, but the page's main scroll pane
+  // (.mim-app-content, height:100vh overflow-y:auto) would otherwise clip a menu that drops below
+  // the fold. Fixed coords are read from the trigger's rect: the menu's RIGHT edge aligns to the
+  // trigger's right edge (matching the .right anchor), it opens downward just below the trigger,
+  // and FLIPS upward when it would overflow the viewport bottom. Cleared by clearRowMenuAnchor.
+  function anchorRowMenu(menu, trigger) {
+    var r = trigger.getBoundingClientRect();
+    var gap = 6;
+    menu.style.position = "fixed";
+    menu.style.right = Math.max(0, window.innerWidth - r.right) + "px";
+    menu.style.left = "auto";
+    // measure after display so offsetHeight is real (the .active rule already set display:flex)
+    var mh = menu.offsetHeight;
+    var below = window.innerHeight - r.bottom;
+    if (mh + gap > below && r.top > mh + gap) {
+      // not enough room below AND enough above → flip up
+      menu.style.top = "auto";
+      menu.style.bottom = Math.max(0, window.innerHeight - r.top + gap) + "px";
+    } else {
+      menu.style.top = r.bottom + gap + "px";
+      menu.style.bottom = "auto";
+    }
+  }
+
+  // Remove the inline fixed-position styles so the menu returns to its CSS default when reopened
+  // elsewhere (and so a closed menu carries no stale coordinates).
+  function clearRowMenuAnchor(menu) {
+    menu.style.position = "";
+    menu.style.top = "";
+    menu.style.bottom = "";
+    menu.style.left = "";
+    menu.style.right = "";
+  }
+
   document.addEventListener("change", function (evt) {
     var t = evt.target;
     if (!t.closest) return;
@@ -74,8 +109,12 @@
       var wasActive = rmenu && rmenu.classList.contains("active");
       document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
         m.classList.remove("active");
+        clearRowMenuAnchor(m);
       });
-      if (rmenu && !wasActive) rmenu.classList.add("active");
+      if (rmenu && !wasActive) {
+        rmenu.classList.add("active");
+        anchorRowMenu(rmenu, rowTrigger);
+      }
       return;
     }
     // Open a delete-confirmation modal (Beer <dialog class="modal">). The row menu closes.
@@ -88,6 +127,7 @@
       var dlg = openId && document.getElementById(openId);
       document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
         m.classList.remove("active");
+        clearRowMenuAnchor(m);
       });
       if (dlg) {
         // Beer reveals a <dialog> via the `.active` class (its base rule is visibility:hidden);
@@ -149,6 +189,7 @@
         ".mim-rowmenu-menu.active, .mim-cols-menu.active, .mim-filter-panel.active"
       ).forEach(function (m) {
         m.classList.remove("active");
+        if (m.classList.contains("mim-rowmenu-menu")) clearRowMenuAnchor(m);
       });
     }
   });
@@ -160,4 +201,15 @@
     var rows = form.querySelectorAll(".mim-filter-row");
     for (var i = 0; i < rows.length; i++) composeName(rows[i]);
   });
+
+  // A fixed-positioned row menu does not track its trigger on scroll/resize — so close any open one
+  // rather than let it float detached. Capture-phase + resize cover the main scroll pane and window.
+  function closeOpenRowMenus() {
+    document.querySelectorAll(".mim-rowmenu-menu.active").forEach(function (m) {
+      m.classList.remove("active");
+      clearRowMenuAnchor(m);
+    });
+  }
+  document.addEventListener("scroll", closeOpenRowMenus, true);
+  window.addEventListener("resize", closeOpenRowMenus);
 })();
